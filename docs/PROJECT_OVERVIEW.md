@@ -170,7 +170,7 @@
 |------------|------|
 | Точность срабатывания | `setExactAndAllowWhileIdle` + проверка после reboot |
 | Задержка STT | < 3 с для фразы до 15 с на mid-range |
-| Min SDK | 29 |
+| Min SDK | **26** (Android 8.0+) — шире, чем GymProgress (29); `targetSdk` 36 для магазина |
 | Приватность | Фразы только локально; в логах release не печатать `body` |
 
 ---

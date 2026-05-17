@@ -14,7 +14,7 @@
 |-----------|--------|
 | README, docs, AGENTS | ✅ |
 | Структура пакетов | ✅ (частично, см. FOLDER_STRUCTURE) |
-| Gradle / Kotlin | ⏳ фаза 0 |
+| Gradle / Kotlin / shell UI | ✅ фаза 0 (2026-05-17) |
 | STT + парсер + alarm | ⏳ фазы 1–2 |
 
 ---
@@ -51,7 +51,7 @@
 ### Задачи
 
 - [ ] Gradle из GymProgress: `libs.versions.toml`, `version.properties`, patch bump.
-- [ ] `applicationId` `com.example.voicemind`, minSdk 29.
+- [x] `applicationId` `com.example.voicemind`, minSdk **26** (не 29, как в GymProgress).
 - [ ] `VoiceMindTheme` — палитра CLEAR BELL (бирюза + нейтрали).
 - [ ] `MainActivity`, `VoiceMindViewModel` (пустой), `NavigationSuiteScaffold`: Главная / Список / Настройки.
 - [ ] `AndroidManifest`: receivers заглушки, permissions declared.

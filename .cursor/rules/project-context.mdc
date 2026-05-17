@@ -1,0 +1,34 @@
+---
+description: Контекст проекта VoiceMind для агента
+alwaysApply: true
+---
+
+# VoiceMind — контекст проекта
+
+## Что это
+Android **голосовая напоминалка**: пользователь говорит «завтра в 9:00 позвонить соседу» → STT → парсер времени и текста → экран подтверждения → Room + AlarmManager → уведомление/будильник/вибро по настройкам.
+
+## Референс GymProgress
+Только **стиль кода**: один ViewModel, `safeDb`, Compose, Room, DataStore, overlay-навигация, `version.properties`. **Не** копировать UI (Volt/Obsidian) и домен (тренировки).
+
+## Статус
+Документация и структура пакетов; реализация — `docs/FEATURE_PLAN.md`.
+
+## Стек (целевой)
+- Compose, Material 3, Room, DataStore
+- SpeechRecognizer (ru-RU), `ReminderParser` (unit-tested)
+- AlarmManager, NotificationCompat, BootReceiver
+
+## Документация
+- `docs/PROJECT_OVERVIEW.md`, `docs/FEATURE_PLAN.md`
+- `docs/REMINDER_PARSING.md`, `docs/NOTIFICATION_MODES.md`
+- `docs/ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md` (UI свой — CLEAR BELL)
+
+## Сортировка
+- Предстоящие: `fireAt ASC`
+- История: `fireAt DESC`
+
+## Критично
+- Подтверждение перед постановкой alarm.
+- `ReminderScheduler` — единственное место планирования.
+- MVP без хранения аудиофайлов.
