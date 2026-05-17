@@ -1,0 +1,42 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# IDE settings
+/.idea/
+/.vscode/
+*.code-workspace
+/.cursor/
+
+# Build artifacts
+*.apk
+*.aab
+*.aar
+*.ap_*
+*.hprof
+*.log
+
+# Audio temp (dev)
+*.wav
+*.tmp
+
+# Signing / credentials
+*.jks
+*.keystore
+
+# OS metadata
+Thumbs.db
+ehthumbs.db
+Desktop.ini
