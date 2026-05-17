@@ -1,9 +1,12 @@
 package com.example.voicemind
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,16 +20,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.voicemind.ui.screens.ConfirmReminderScreen
 import com.example.voicemind.ui.screens.HomeScreen
+import com.example.voicemind.ui.screens.ManualReminderScreen
+import com.example.voicemind.ui.screens.ReminderDetailScreen
 import com.example.voicemind.ui.screens.ReminderListScreen
 import com.example.voicemind.ui.screens.SettingsScreen
 import com.example.voicemind.ui.theme.VoiceMindTheme
+import com.example.voicemind.util.ReminderPermissions
 import com.example.voicemind.viewmodel.VoiceMindViewModel
 
 class MainActivity : ComponentActivity() {
@@ -43,9 +51,32 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
+    val context = LocalContext.current
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val listeningState by viewModel.listeningState.collectAsState()
+    val pendingConfirm by viewModel.pendingConfirm.collectAsState()
+    val manualDraft by viewModel.manualDraft.collectAsState()
+    val upcomingReminders by viewModel.upcomingReminders.collectAsState()
+    val historyReminders by viewModel.historyReminders.collectAsState()
+    val nextReminder by viewModel.nextReminder.collectAsState()
+    val listTab by viewModel.listTab.collectAsState()
+    val detailReminder by viewModel.detailReminder.collectAsState()
+    val defaultDeliveryMode by viewModel.defaultDeliveryMode.collectAsState()
+    val confirmBeforeSchedule by viewModel.confirmBeforeSchedule.collectAsState()
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+
+    LaunchedEffect(Unit) {
+        if (ReminderPermissions.needsPostNotificationsPermission() &&
+            !ReminderPermissions.hasPostNotifications(context)
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
@@ -54,37 +85,83 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        modifier = Modifier.fillMaxSize(),
-    ) { innerPadding ->
-        NavigationSuiteScaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            navigationSuiteItems = {
-                AppDestinations.entries.forEach { destination ->
-                    item(
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label,
-                            )
-                        },
-                        label = { Text(destination.label) },
-                        selected = destination == currentDestination,
-                        onClick = { currentDestination = destination },
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            modifier = Modifier.fillMaxSize(),
+        ) { innerPadding ->
+            NavigationSuiteScaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                navigationSuiteItems = {
+                    AppDestinations.entries.forEach { destination ->
+                        item(
+                            icon = {
+                                Icon(
+                                    imageVector = destination.icon,
+                                    contentDescription = destination.label,
+                                )
+                            },
+                            label = { Text(destination.label) },
+                            selected = destination == currentDestination,
+                            onClick = { currentDestination = destination },
+                        )
+                    }
+                },
+            ) {
+                when (currentDestination) {
+                    AppDestinations.HOME -> HomeScreen(
+                        listeningState = listeningState,
+                        nextReminder = nextReminder,
+                        onVoiceClick = { viewModel.startListening() },
+                        onManualCreateClick = { viewModel.openManualCreate() },
+                    )
+                    AppDestinations.LIST -> ReminderListScreen(
+                        selectedTab = listTab,
+                        onTabSelected = { viewModel.setListTab(it) },
+                        upcomingReminders = upcomingReminders,
+                        historyReminders = historyReminders,
+                        onUpcomingClick = { viewModel.openReminderForEdit(it) },
+                        onHistoryClick = { viewModel.openReminderDetail(it) },
+                        onCancel = { viewModel.cancelReminder(it) },
+                    )
+                    AppDestinations.SETTINGS -> SettingsScreen(
+                        defaultDeliveryMode = defaultDeliveryMode,
+                        confirmBeforeSchedule = confirmBeforeSchedule,
+                        onDefaultDeliveryModeChange = { viewModel.setDefaultDeliveryMode(it) },
+                        onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                     )
                 }
-            },
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                when (currentDestination) {
-                    AppDestinations.HOME -> HomeScreen()
-                    AppDestinations.LIST -> ReminderListScreen()
-                    AppDestinations.SETTINGS -> SettingsScreen()
-                }
             }
+        }
+
+        pendingConfirm?.let { pending ->
+            ConfirmReminderScreen(
+                pending = pending,
+                onBack = { viewModel.dismissConfirm() },
+                onSave = { body, fireAt, mode ->
+                    viewModel.updatePending(body, fireAt, mode)
+                },
+                onConfirm = { viewModel.confirmVoiceReminder() },
+            )
+        }
+
+        manualDraft?.let { draft ->
+            ManualReminderScreen(
+                draft = draft,
+                onBack = { viewModel.dismissManual() },
+                onSave = { body, fireAt, mode ->
+                    viewModel.saveManualReminder(body, fireAt, mode)
+                },
+            )
+        }
+
+        detailReminder?.let { reminder ->
+            ReminderDetailScreen(
+                reminder = reminder,
+                onBack = { viewModel.dismissDetail() },
+            )
         }
     }
 }
