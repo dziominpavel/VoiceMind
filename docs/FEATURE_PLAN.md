@@ -14,8 +14,10 @@
 |-----------|--------|
 | README, docs, AGENTS | ✅ |
 | Структура пакетов | ✅ (частично, см. FOLDER_STRUCTURE) |
-| Gradle / Kotlin / shell UI | ✅ фаза 0 (2026-05-17) |
-| STT + парсер + alarm | ⏳ фазы 1–2 |
+| Gradle / Kotlin / shell UI | ✅ фаза 0 |
+| STT + парсер + confirm + Room | ✅ фаза 1 |
+| Alarm + уведомления | ✅ фаза 2 (2026-05-17) |
+| Списки / история | ✅ фаза 3 |
 
 ---
 
@@ -70,31 +72,31 @@
 
 ### 1.1 Room v1
 
-- [ ] Entity `Reminder`, DAO, `AppDatabase` v1.
-- [ ] Insert только со статусом `SCHEDULED` после confirm.
+- [x] Entity `Reminder`, DAO, `AppDatabase` v1.
+- [x] Insert только со статусом `SCHEDULED` после confirm.
 
 ### 1.2 SpeechInputController
 
-- [ ] `SpeechRecognizer`, ru-RU.
-- [ ] UI: Listening / Processing / Error.
-- [ ] Permission `RECORD_AUDIO` + rationale.
+- [x] `SpeechRecognizer`, ru-RU.
+- [x] UI: Listening / Processing / Error.
+- [x] Permission `RECORD_AUDIO` + rationale.
 
 ### 1.3 ReminderParser (unit tests)
 
-- [ ] `ParseResult`, паттерны из [REMINDER_PARSING.md](REMINDER_PARSING.md).
-- [ ] ≥ 30 тестов с фиксированным `Clock`.
-- [ ] Warnings + confidence.
+- [x] `ParseResult`, паттерны из [REMINDER_PARSING.md](REMINDER_PARSING.md).
+- [x] ≥ 30 тестов с фиксированным `Clock`.
+- [x] Warnings + confidence.
 
 ### 1.4 ConfirmReminderScreen (overlay)
 
-- [ ] Показ `fireAt`, `body`, warnings.
-- [ ] DatePicker + TimePicker.
-- [ ] `DeliveryModePicker` (значения пока сохраняются, alarm — фаза 2).
-- [ ] Кнопка «Сохранить» → Room **без** schedule (или schedule stub log).
+- [x] Показ `fireAt`, `body`, warnings.
+- [x] DatePicker + TimePicker.
+- [x] `DeliveryModePicker` (значения сохраняются, alarm — фаза 2).
+- [x] Кнопка «Сохранить» → Room **без** schedule (фаза 2).
 
 ### 1.5 Текстовый ввод
 
-- [ ] `OutlinedTextField` на Home → тот же parser → Confirm.
+- [x] `OutlinedTextField` на Home → тот же parser → Confirm.
 
 ### Критерии готовности
 
@@ -110,27 +112,27 @@
 
 ### 2.1 ReminderScheduler
 
-- [ ] `schedule` / `cancel` / `rescheduleAll`.
-- [ ] `ReminderAlarmReceiver` → `ReminderNotifier`.
+- [x] `schedule` / `cancel` / `rescheduleAll`.
+- [x] `ReminderAlarmReceiver` → `ReminderNotifier`.
 
 ### 2.2 Notification channels + modes
 
-- [ ] Реализовать `NOTIFICATION`, `VIBRATE_ONLY`, `SILENT` — [NOTIFICATION_MODES.md](NOTIFICATION_MODES.md).
-- [ ] `ReminderActionReceiver`: Done, Snooze 10m, Cancel.
+- [x] `NOTIFICATION`, `VIBRATE_ONLY`, `SILENT`, `ALARM` — [NOTIFICATION_MODES.md](NOTIFICATION_MODES.md).
+- [x] `ReminderActionReceiver`: Done, Snooze 10m, Cancel.
 
 ### 2.3 Permissions UX
 
-- [ ] `POST_NOTIFICATIONS` (33+).
-- [ ] `SCHEDULE_EXACT_ALARM` — проверка + Intent в настройки.
-- [ ] При сохранении Confirm → `schedule()`.
+- [x] `POST_NOTIFICATIONS` (33+) при старте.
+- [x] `SCHEDULE_EXACT_ALARM` — проверка + кнопка в настройках.
+- [x] При сохранении Confirm → `schedule()`.
 
 ### 2.4 BootReceiver
 
-- [ ] `BOOT_COMPLETED` → reload SCHEDULED from DB → schedule all.
+- [x] `BOOT_COMPLETED` + `MY_PACKAGE_REPLACED` → reschedule all.
 
 ### 2.5 Статусы
 
-- [ ] FIRED при показе; DISMISSED / CANCELLED / SNOOZED по действиям.
+- [x] FIRED при показе; DISMISSED / CANCELLED / SNOOZED (snooze → снова SCHEDULED).
 
 ### Критерии готовности
 
@@ -146,22 +148,22 @@
 
 ### 3.1 ReminderListScreen
 
-- [ ] Вкладки: Предстоящие (`fireAt ASC`) / История.
-- [ ] `ReminderCard`, swipe to cancel (опционально).
+- [x] Вкладки: Предстоящие (`fireAt ASC`) / История.
+- [x] `ReminderCard`, swipe to cancel (опционально).
 
 ### 3.2 ReminderDetailScreen
 
-- [ ] Просмотр, изменение времени/текста/режима → reschedule.
-- [ ] Удалить / отменить.
+- [x] Просмотр, изменение времени/текста/режима → reschedule.
+- [x] Удалить / отменить.
 
 ### 3.3 Home — ближайшее
 
-- [ ] Карточка next reminder + относительное время («через 2 ч»).
+- [x] Карточка next reminder + относительное время («через 2 ч»).
 
 ### 3.4 Settings
 
-- [ ] `defaultDeliveryMode` в DataStore.
-- [ ] `confirmBeforeSchedule` (default on).
+- [x] `defaultDeliveryMode` в DataStore.
+- [x] `confirmBeforeSchedule` (default on).
 
 ### Критерии готовности
 
