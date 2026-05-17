@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">VoiceMind</string>
+    <string name="tab_home">Главная</string>
+    <string name="tab_list">Список</string>
+    <string name="tab_settings">Настройки</string>
+    <string name="placeholder_home_title">Голосовая напоминалка</string>
+    <string name="placeholder_home_subtitle">Скажите напоминание — мы разберём время и текст. Функция в разработке.</string>
+    <string name="placeholder_list_empty">Пока нет напоминаний</string>
+    <string name="placeholder_settings">Режимы оповещения и другие настройки появятся позже.</string>
+</resources>

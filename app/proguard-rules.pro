@@ -1,0 +1,1 @@
+# VoiceMind — ProGuard rules (release)

@@ -1,26 +1,37 @@
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+
+# Kotlin compiler
+.kotlin/
+
+# Android Studio / IntelliJ
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+.idea/
+.idea/**
+
+# Local SDK path (machine-specific)
+local.properties
+
+# IDE — VS Code / Cursor local state (rules in repo are under .cursor/rules if added explicitly)
+.vscode/
+.cursor/plans/
+*.code-workspace
+
+# OS
 .DS_Store
-/build
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Android build & native
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 
-# IDE settings
-/.idea/
-/.vscode/
-*.code-workspace
-/.cursor/
-
-# Build artifacts
+# Build outputs
 *.apk
 *.aab
 *.aar
@@ -36,7 +47,6 @@ local.properties
 *.jks
 *.keystore
 
-# OS metadata
-Thumbs.db
-ehthumbs.db
-Desktop.ini
+# Gradle configuration cache reports (optional noise)
+build/reports/
+**/build/reports/
