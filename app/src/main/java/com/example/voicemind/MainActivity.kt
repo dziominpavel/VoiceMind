@@ -1,7 +1,9 @@
 package com.example.voicemind
 
 import android.Manifest
+import android.app.Activity
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -27,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.voicemind.data.speech.SpeechRecognition
 import com.example.voicemind.ui.screens.ConfirmReminderScreen
 import com.example.voicemind.ui.screens.HomeScreen
 import com.example.voicemind.ui.screens.ManualReminderScreen
@@ -69,6 +72,40 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { }
+
+    val systemSpeechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                val text = result.data
+                    ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull()
+                if (text.isNullOrBlank()) {
+                    viewModel.onSpeechSessionCancelled()
+                } else {
+                    viewModel.onSpeechResult(text)
+                }
+            }
+            else -> viewModel.onSpeechSessionCancelled()
+        }
+    }
+
+    fun startVoiceInput() {
+        if (SpeechRecognition.isAvailable(context)) {
+            viewModel.startListening()
+            return
+        }
+        val intent = SpeechRecognition.recognizerIntent().apply {
+            putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.home_listening))
+        }
+        if (intent.resolveActivity(context.packageManager) != null) {
+            viewModel.beginExternalVoiceSession()
+            systemSpeechLauncher.launch(intent)
+        } else {
+            viewModel.showError(context.getString(R.string.error_speech_unavailable))
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (ReminderPermissions.needsPostNotificationsPermission() &&
@@ -114,7 +151,10 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     AppDestinations.HOME -> HomeScreen(
                         listeningState = listeningState,
                         nextReminder = nextReminder,
-                        onVoiceClick = { viewModel.startListening() },
+                        onVoiceClick = { startVoiceInput() },
+                        onMicPermissionDenied = {
+                            viewModel.showError(context.getString(R.string.error_mic_denied))
+                        },
                         onManualCreateClick = { viewModel.openManualCreate() },
                     )
                     AppDestinations.LIST -> ReminderListScreen(

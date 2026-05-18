@@ -14,6 +14,8 @@
     <string name="home_listening">Слушаю…</string>
     <string name="home_processing">Обрабатываю…</string>
     <string name="permission_mic_rationale">Нужен доступ к микрофону для голосовых напоминаний</string>
+    <string name="error_mic_denied">Нужен доступ к микрофону — включите в настройках приложения</string>
+    <string name="error_speech_unavailable">На устройстве нет распознавания речи. Установите Google или включите сервис речи в настройках</string>
 
     <string name="list_empty">Пока нет напоминаний</string>
     <string name="list_history_empty">История пуста</string>

@@ -1,10 +1,10 @@
 package com.example.voicemind.data.speech
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 
@@ -15,57 +15,61 @@ class SpeechInputController(
     private val onError: (String) -> Unit,
 ) {
     private val appContext = context.applicationContext
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
 
     fun startListening() {
-        if (!SpeechRecognizer.isRecognitionAvailable(appContext)) {
+        if (!SpeechRecognition.isAvailable(appContext)) {
             onError("Распознавание речи недоступно на устройстве")
             return
         }
-        stopListening()
-        val sr = SpeechRecognizer.createSpeechRecognizer(appContext).also { recognizer = it }
-        sr.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) = Unit
-            override fun onBeginningOfSpeech() = Unit
-            override fun onRmsChanged(rmsdB: Float) = Unit
-            override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() = Unit
-            override fun onPartialResults(partialResults: Bundle?) {
-                partialResults?.text()?.let { onPartial(it) }
-            }
-            override fun onResults(results: Bundle?) {
-                val text = results?.text()
-                if (text.isNullOrBlank()) {
-                    onError("Не удалось распознать речь")
-                } else {
-                    onResult(text)
+        mainHandler.post {
+            releaseRecognizer()
+            val sr = SpeechRecognition.createRecognizer(appContext).also { recognizer = it }
+            sr.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) = Unit
+                override fun onBeginningOfSpeech() = Unit
+                override fun onRmsChanged(rmsdB: Float) = Unit
+                override fun onBufferReceived(buffer: ByteArray?) = Unit
+                override fun onEndOfSpeech() = Unit
+                override fun onPartialResults(partialResults: Bundle?) {
+                    partialResults?.text()?.let { onPartial(it) }
                 }
-                stopListening()
-            }
-            override fun onError(error: Int) {
-                onError(errorMessage(error))
-                stopListening()
-            }
-            override fun onEvent(eventType: Int, params: Bundle?) = Unit
-        })
-        sr.startListening(recognizerIntent())
+                override fun onResults(results: Bundle?) {
+                    val text = results?.text()
+                    if (text.isNullOrBlank()) {
+                        onError("Не удалось распознать речь")
+                    } else {
+                        onResult(text)
+                    }
+                    stopListening()
+                }
+                override fun onError(error: Int) {
+                    onError(errorMessage(error))
+                    stopListening()
+                }
+                override fun onEvent(eventType: Int, params: Bundle?) = Unit
+            })
+            sr.startListening(SpeechRecognition.recognizerIntent())
+        }
     }
 
     fun stopListening() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            releaseRecognizer()
+        } else {
+            mainHandler.post { releaseRecognizer() }
+        }
+    }
+
+    private fun releaseRecognizer() {
         try {
             recognizer?.stopListening()
             recognizer?.destroy()
         } catch (e: Exception) {
-            Log.w(TAG, "stopListening", e)
+            Log.w(TAG, "releaseRecognizer", e)
         }
         recognizer = null
-    }
-
-    private fun recognizerIntent(): Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU")
-        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
     }
 
     private fun Bundle.text(): String? =
