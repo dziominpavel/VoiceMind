@@ -44,6 +44,7 @@ fun HomeScreen(
     listeningState: ListeningState,
     nextReminder: Reminder?,
     onVoiceClick: () -> Unit,
+    onMicPermissionDenied: () -> Unit,
     onManualCreateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -52,7 +53,7 @@ fun HomeScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) onVoiceClick()
+        if (granted) onVoiceClick() else onMicPermissionDenied()
     }
 
     fun requestMicAndStart() {

@@ -74,6 +74,15 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _errorMessage.value = null
     }
 
+    fun showError(message: String) {
+        _errorMessage.value = message
+    }
+
+    /** UI «слушаю» без встроенного SpeechRecognizer (системный диалог). */
+    fun beginExternalVoiceSession() {
+        _listeningState.value = ListeningState.Listening
+    }
+
     fun dismissConfirm() {
         _pendingConfirm.value = null
     }
@@ -118,16 +127,24 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _listeningState.value = ListeningState.Listening
         speechController = SpeechInputController(
             context = getApplication(),
-            onResult = { text ->
-                _listeningState.value = ListeningState.Processing
-                handleVoicePhrase(text)
-                _listeningState.value = ListeningState.Idle
-            },
+            onResult = { onSpeechResult(it) },
             onError = { msg ->
                 _errorMessage.value = msg
                 _listeningState.value = ListeningState.Idle
             },
         ).also { it.startListening() }
+    }
+
+    /** Результат из встроенного SpeechRecognizer или системного диалога распознавания. */
+    fun onSpeechResult(text: String) {
+        _listeningState.value = ListeningState.Processing
+        handleVoicePhrase(text)
+        _listeningState.value = ListeningState.Idle
+    }
+
+    fun onSpeechSessionCancelled() {
+        stopListening()
+        _listeningState.value = ListeningState.Idle
     }
 
     fun stopListening() {
