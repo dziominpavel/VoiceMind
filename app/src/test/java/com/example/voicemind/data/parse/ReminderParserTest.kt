@@ -236,4 +236,76 @@ class ReminderParserTest {
         val r = parser.parse("в воскресенье в 11:00 бранч", now)
         assertEquals(LocalDateTime.of(2026, 5, 17, 11, 0).atZone(zone).toInstant(), r.fireAt)
     }
+
+    @Test
+    fun at9evening_callMom() {
+        val r = parser.parse("сегодня в 9 вечера позвонить маме", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 21, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить маме", r.body)
+    }
+
+    @Test
+    fun at10morning_meeting() {
+        val r = parser.parse("завтра в 10 утра встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun at3day_lunch() {
+        val r = parser.parse("в 3 дня обед", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 15, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("обед", r.body)
+    }
+
+    @Test
+    fun at2night_check() {
+        val r = parser.parse("в 2 ночи проверить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 2, 0).atZone(zone).toInstant(), r.fireAt)
+    }
+
+    @Test
+    fun atMidnight() {
+        val r = parser.parse("в полночь встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 0, 0).atZone(zone).toInstant(), r.fireAt)
+    }
+
+    @Test
+    fun atNoon() {
+        val r = parser.parse("в полдень обед", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 12, 0).atZone(zone).toInstant(), r.fireAt)
+    }
+
+    @Test
+    fun at12night() {
+        val r = parser.parse("в 12 ночи проверить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 0, 0).atZone(zone).toInstant(), r.fireAt)
+    }
+
+    @Test
+    fun inHalfHour_turnOff() {
+        val r = parser.parse("через полчаса выключить плиту", now)
+        assertEquals(now.plusSeconds(30 * 60), r.fireAt)
+        assertEquals("выключить плиту", r.body)
+    }
+
+    @Test
+    fun inOneAndHalfHour() {
+        val r = parser.parse("через полтора часа совещание", now)
+        assertEquals(now.plusSeconds(90 * 60), r.fireAt)
+    }
+
+    @Test
+    fun shortHour_ambiguousWarning() {
+        val r = parser.parse("завтра в 9 тест", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.TIME_AMBIGUOUS))
+    }
+
+    @Test
+    fun standaloneEvening() {
+        val r = parser.parse("сегодня вечером фильм", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 19, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("фильм", r.body)
+    }
 }

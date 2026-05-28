@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -68,6 +69,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val detailReminder by viewModel.detailReminder.collectAsState()
     val defaultDeliveryMode by viewModel.defaultDeliveryMode.collectAsState()
     val confirmBeforeSchedule by viewModel.confirmBeforeSchedule.collectAsState()
+    val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -92,16 +94,18 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     }
 
     fun startVoiceInput() {
-        if (SpeechRecognition.isAvailable(context)) {
-            viewModel.startListening()
-            return
-        }
+        // Prefer the system speech dialog — it works on every OEM (Huawei, Samsung, etc.).
         val intent = SpeechRecognition.recognizerIntent().apply {
             putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.home_listening))
         }
         if (intent.resolveActivity(context.packageManager) != null) {
             viewModel.beginExternalVoiceSession()
             systemSpeechLauncher.launch(intent)
+            return
+        }
+        // Fallback to inline SpeechRecognizer
+        if (SpeechRecognizer.isRecognitionAvailable(context)) {
+            viewModel.startListening()
         } else {
             viewModel.showError(context.getString(R.string.error_speech_unavailable))
         }
@@ -112,6 +116,21 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             !ReminderPermissions.hasPostNotifications(context)
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    LaunchedEffect(fallbackToSystemSpeech) {
+        if (fallbackToSystemSpeech) {
+            viewModel.consumeFallbackToSystemSpeech()
+            val intent = SpeechRecognition.recognizerIntent().apply {
+                putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.home_listening))
+            }
+            if (intent.resolveActivity(context.packageManager) != null) {
+                viewModel.beginExternalVoiceSession()
+                systemSpeechLauncher.launch(intent)
+            } else {
+                viewModel.showError(context.getString(R.string.error_speech_unavailable))
+            }
         }
     }
 
