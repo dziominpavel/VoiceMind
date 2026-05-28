@@ -1,6 +1,6 @@
 # Режимы оповещения
 
-> Дата: 2026-05-17
+> Дата: 2026-05-29
 
 Каждое напоминание хранит `deliveryMode`. Если не задано при создании — берётся `defaultDeliveryMode` из DataStore.
 
@@ -9,10 +9,10 @@
 | Значение | UI (ru) | Поведение |
 |----------|---------|-----------|
 | `NOTIFICATION` | Уведомление | Канал с звуком, heads-up, текст в шторке |
-| `ALARM` | Как будильник | Отдельный канал, высокий приоритет, `fullScreenIntent`, длинная вибрация; опционально повтор через 5 мин |
+| `ALARM` | Как будильник | Отдельный канал, высокий приоритет, длинная вибрация; `fullScreenIntent` — фаза 4 |
 | `VIBRATE_ONLY` | Только вибрация | `setSound(null)`, паттерн вибрации |
 | `SILENT` | Тихое | Только иконка и текст, без звука и вибрации |
-| `LOUD_ALARM` | (фаза 4) | Отдельная `AlarmActivity` поверх lock screen, кнопки «Отложить» / «Готово» |
+| `LOUD_ALARM` | (фаза 4) | Отдельная `AlarmActivity` поверх lock screen, keep screen on |
 
 В настройках — **radio / dropdown** с кратким описанием каждого режима.
 
@@ -40,7 +40,7 @@
 | Action | Эффект |
 |--------|--------|
 | Готово | `status = DISMISSED`, отменить alarm |
-| Отложить 10 мин | `fireAt = now + 10m`, `status = SNOOZED`, перепланировать |
+| Отложить 10 мин | `fireAt = now + 10 мин`, `status = SNOOZED` → `SCHEDULED`, перепланировать |
 | Отменить | `status = CANCELLED` |
 
 `BroadcastReceiver` для action — `ReminderActionReceiver`.
@@ -66,6 +66,8 @@
 
 - принудительно показать как `SILENT` или `VIBRATE_ONLY` (настройка);
 - на ConfirmScreen при создании — предупреждение: «Сработает тихо из‑за тихих часов».
+
+> Не реализовано в MVP: нет полей `quietHoursStart` / `End` в DataStore.
 
 ---
 

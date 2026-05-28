@@ -2,8 +2,8 @@
 
 > **Напоминалка с голосовым вводом** — парсинг времени и текста, точное срабатывание, настраиваемый тип оповещения.
 >
-> Статус: **план, код не начат** (кроме docs и структуры папок).
-> Дата: 2026-05-17.
+> Статус: **MVP реализован** (фазы 0–3 done). Фазы 4+ — в плане.
+> Дата: 2026-05-29.
 > Референс **стиля кода:** GymProgress. **UI и продукт** — по документам VoiceMind.
 
 ---
@@ -14,10 +14,10 @@
 |-----------|--------|
 | README, docs, AGENTS | ✅ |
 | Структура пакетов | ✅ (частично, см. FOLDER_STRUCTURE) |
-| Gradle / Kotlin / shell UI | ✅ фаза 0 |
+| Gradle / Kotlin / shell UI / тема | ✅ фаза 0 |
 | STT + парсер + confirm + Room | ✅ фаза 1 |
-| Alarm + уведомления | ✅ фаза 2 (2026-05-17) |
-| Списки / история | ✅ фаза 3 |
+| Alarm + уведомления + boot reschedule | ✅ фаза 2 |
+| Списки / история / настройки | ✅ фаза 3 |
 
 ---
 
@@ -52,12 +52,12 @@
 
 ### Задачи
 
-- [ ] Gradle из GymProgress: `libs.versions.toml`, `version.properties`, patch bump.
+- [x] Gradle из GymProgress: `libs.versions.toml`, `version.properties`, patch bump.
 - [x] `applicationId` `com.example.voicemind`, minSdk **26** (не 29, как в GymProgress).
-- [ ] `VoiceMindTheme` — палитра CLEAR BELL (бирюза + нейтрали).
-- [ ] `MainActivity`, `VoiceMindViewModel` (пустой), `NavigationSuiteScaffold`: Главная / Список / Настройки.
-- [ ] `AndroidManifest`: receivers заглушки, permissions declared.
-- [ ] `.cursor/rules` — kotlin-android, compose-ui (адаптация).
+- [x] `VoiceMindTheme` — палитра CLEAR BELL (бирюза + нейтрали), тёмная тема.
+- [x] `MainActivity`, `VoiceMindViewModel`, `NavigationSuiteScaffold`: Главная / Список / Настройки.
+- [x] `AndroidManifest`: receivers, permissions declared.
+- [x] `.cursor/rules` — kotlin-android, compose-ui.
 
 ### Критерии готовности
 
@@ -80,23 +80,25 @@
 - [x] `SpeechRecognizer`, ru-RU.
 - [x] UI: Listening / Processing / Error.
 - [x] Permission `RECORD_AUDIO` + rationale.
+- [x] Fallback на системный диалог распознавания (OEM-friendly).
 
 ### 1.3 ReminderParser (unit tests)
 
 - [x] `ParseResult`, паттерны из [REMINDER_PARSING.md](REMINDER_PARSING.md).
-- [x] ≥ 30 тестов с фиксированным `Clock`.
+- [x] ≥ 38 тестов с фиксированным `Instant now`.
 - [x] Warnings + confidence.
 
 ### 1.4 ConfirmReminderScreen (overlay)
 
 - [x] Показ `fireAt`, `body`, warnings.
 - [x] DatePicker + TimePicker.
-- [x] `DeliveryModePicker` (значения сохраняются, alarm — фаза 2).
-- [x] Кнопка «Сохранить» → Room **без** schedule (фаза 2).
+- [x] `DeliveryModePicker`.
+- [x] Кнопка «Сохранить» → Room + `schedule()`.
 
 ### 1.5 Текстовый ввод
 
 - [x] `OutlinedTextField` на Home → тот же parser → Confirm.
+- [x] Ручное создание без парсинга (пустая форма с дефолтным временем).
 
 ### Критерии готовности
 
@@ -164,6 +166,8 @@
 
 - [x] `defaultDeliveryMode` в DataStore.
 - [x] `confirmBeforeSchedule` (default on).
+- [ ] (Фаза 4+) Тихие часы — `quietHoursStart` / `End`.
+- [ ] (Фаза 4+) Запрос исключения из оптимизации батареи.
 
 ### Критерии готовности
 
@@ -178,8 +182,8 @@
 
 ### 4.1 Режим ALARM
 
-- [ ] Канал high priority, fullScreenIntent.
-- [ ] `AlarmActivity` — крупный текст, Snooze / Done.
+- [x] Канал high priority, vibration pattern.
+- [ ] `fullScreenIntent` + `AlarmActivity` — крупный текст, Snooze / Done.
 
 ### 4.2 LOUD_ALARM (опционально внутри фазы)
 
@@ -262,7 +266,7 @@
 
 - Обновить дату в `PROJECT_OVERVIEW.md` / `ARCHITECTURE.md`.
 - Завести `docs/TECH_DEBT.md` при появлении известных багов.
-- В `README` снять пометку «инициализация», когда есть MVP.
+- В `README` пометка «MVP реализован» — done.
 
 ---
 

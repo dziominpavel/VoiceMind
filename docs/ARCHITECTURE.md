@@ -1,6 +1,6 @@
 # Архитектура VoiceMind
 
-> Дата: 2026-05-17 · Напоминалка с голосовым парсингом
+> Дата: 2026-05-29 · Напоминалка с голосовым парсингом (MVP фазы 0–3)
 
 ## Поддерживаемые версии Android
 
@@ -26,42 +26,59 @@ GymProgress с `minSdk 29` **не ставится** на Android 9 и ниже 
 ```
 com.example.voicemind/
 ├── MainActivity.kt
+├── VoiceMindApplication.kt
+├── AppDestinations.kt
 ├── data/
 │   ├── AppDatabase.kt
 │   ├── Reminder.kt
 │   ├── ReminderDao.kt
+│   ├── ReminderRepository.kt
+│   ├── ReminderStatus.kt
+│   ├── DeliveryMode.kt
 │   ├── SettingsRepository.kt
+│   ├── FormatUtils.kt
 │   ├── parse/
 │   │   ├── ReminderParser.kt
-│   │   ├── DateTimePatterns.kt
-│   │   └── ParseResult.kt
+│   │   ├── ParseResult.kt
+│   │   ├── ParseWarning.kt
+│   │   └── ParseResultExtensions.kt
 │   ├── speech/
-│   │   └── SpeechInputController.kt
+│   │   ├── SpeechInputController.kt
+│   │   └── SpeechRecognition.kt
 │   ├── scheduling/
 │   │   ├── ReminderScheduler.kt
+│   │   ├── ReminderIntents.kt
 │   │   ├── ReminderAlarmReceiver.kt
 │   │   ├── ReminderActionReceiver.kt
 │   │   └── BootReceiver.kt
-│   ├── notification/
-│   │   ├── ReminderNotifier.kt
-│   │   └── NotificationChannels.kt
-│   └── backup/                    # фаза 5
-│       └── BackupRepository.kt
+│   └── notification/
+│       ├── ReminderNotifier.kt
+│       └── NotificationChannels.kt
 ├── viewmodel/
-│   └── VoiceMindViewModel.kt
-└── ui/
-    ├── navigation/
-    ├── screens/
-    │   ├── HomeScreen.kt          # микрофон + ближайшее
-    │   ├── ConfirmReminderScreen.kt
-    │   ├── ReminderListScreen.kt
-    │   ├── ReminderDetailScreen.kt
-    │   └── SettingsScreen.kt
-    ├── components/
-    │   ├── MicButton.kt
-    │   ├── ReminderCard.kt
-    │   └── DeliveryModePicker.kt
-    └── theme/
+│   ├── VoiceMindViewModel.kt
+│   ├── ListeningState.kt
+│   ├── PendingReminderConfirm.kt
+│   ├── ManualReminderDraft.kt
+│   └── ReminderListTab.kt
+├── ui/
+│   ├── navigation/
+│   │   └── AppDestination.kt
+│   ├── screens/
+│   │   ├── HomeScreen.kt
+│   │   ├── ConfirmReminderScreen.kt
+│   │   ├── ManualReminderScreen.kt
+│   │   ├── ReminderListScreen.kt
+│   │   ├── ReminderDetailScreen.kt
+│   │   ├── ReminderDateTimeDialogs.kt
+│   │   └── SettingsScreen.kt
+│   ├── components/
+│   │   └── DeliveryModePicker.kt
+│   └── theme/
+│       ├── Color.kt
+│       ├── Theme.kt
+│       └── Dimens.kt
+└── util/
+    └── ReminderPermissions.kt
 ```
 
 Каталоги `data/parse`, `data/speech`, `data/scheduling`, `data/notification` — в репозитории (см. FOLDER_STRUCTURE).
@@ -100,15 +117,21 @@ sequenceDiagram
 - `historyReminders` — `FIRED | DISMISSED | CANCELLED`, `fireAt DESC`
 - `nextReminder` — первый из upcoming
 - `listeningState` — Idle / Listening / Processing
-- `pendingParse` — для Confirm overlay
-- `settings`
+- `pendingConfirm` — для Confirm overlay (голос)
+- `manualDraft` — ручной ввод / fallback
+- `detailReminder` — просмотр/редактирование из списка
+- `listTab` — Upcoming / History
+- `defaultDeliveryMode` — из DataStore
+- `confirmBeforeSchedule` — из DataStore
+- `fallbackToSystemSpeech` — флаг fallback на системный диалог
 - `errorMessage`
 
 **Методы:**
 
-- `startListening()` / `stopListening()` / `parseText(String)`
-- `confirmReminder(...)` — insert + schedule
-- `snoozeReminder(id, minutes)` / `dismissReminder(id)` / `cancelReminder(id)`
+- `startListening()` / `stopListening()` / `onSpeechResult(String)`
+- `confirmVoiceReminder()` / `saveManualReminder(...)` — insert + schedule
+- `cancelReminder(id)` / `openReminderForEdit(id)` / `openReminderDetail(reminder)`
+- `updatePending(...)` — правка полей перед confirm
 - `safeDb { }` — как в GymProgress
 
 Бизнес-логику парсинга **не** держать в Composable.
@@ -131,14 +154,14 @@ Overlay:
 ## ReminderScheduler
 
 ```kotlin
-interface ReminderScheduler {
+class ReminderScheduler(context: Context) {
     fun schedule(reminder: Reminder)
     fun cancel(reminderId: Long)
-    fun rescheduleAll() // после boot и restore backup
+    fun rescheduleAll(reminders: List<Reminder>)
 }
 ```
 
-Реализация: `AlarmManagerReminderScheduler` — единственное место работы с `AlarmManager`.
+Единственное место работы с `AlarmManager`. Fallback на `setAndAllowWhileIdle` при отсутствии `SCHEDULE_EXACT_ALARM`.
 
 При update напоминания: `cancel` + `schedule` с новым `fireAt`.
 
@@ -157,12 +180,13 @@ interface ReminderScheduler {
 
 ## STT
 
-`SpeechInputController`:
+`SpeechInputController` + `SpeechRecognition` (object):
 
 - обёртка над `SpeechRecognizer`;
+- fallback на системный диалог `RecognizerIntent` (OEM-friendly);
 - поток результатов в ViewModel;
 - обработка ошибок (нет сети для offline-движка не должно ломать — on-device);
-- timeout 30 с.
+- timeout 10 с.
 
 Аудио на диск **не пишем** в MVP.
 
@@ -176,7 +200,7 @@ interface ReminderScheduler {
 `ReminderNotifier.show(reminder, mode)`:
 
 - строит `NotificationCompat` по mode;
-- для `ALARM` — `fullScreenIntent` на `AlarmActivity` (фаза 4).
+- для `ALARM` — высокий приоритет + vibration pattern; `fullScreenIntent` — фаза 4.
 
 ## Референс GymProgress (только код)
 
