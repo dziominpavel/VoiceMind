@@ -19,13 +19,21 @@ object SpeechRecognition {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        // longer silence timeout so the user can finish longer phrases
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2_500)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1_500)
     }
 
     fun createRecognizer(context: Context): SpeechRecognizer {
         val appContext = context.applicationContext
+        // Prefer the standard (cloud / OEM) recognizer; on-device can be
+        // non-functional on devices without GMS (e.g. Huawei).
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext) }
-                .getOrElse { SpeechRecognizer.createSpeechRecognizer(appContext) }
+            runCatching { SpeechRecognizer.createSpeechRecognizer(appContext) }
+                .getOrElse {
+                    runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext) }
+                        .getOrElse { SpeechRecognizer.createSpeechRecognizer(appContext) }
+                }
         } else {
             SpeechRecognizer.createSpeechRecognizer(appContext)
         }

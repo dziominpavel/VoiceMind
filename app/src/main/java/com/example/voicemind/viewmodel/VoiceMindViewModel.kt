@@ -70,6 +70,13 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     val confirmBeforeSchedule = settings.confirmBeforeSchedule
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
+    private val _fallbackToSystemSpeech = MutableStateFlow(false)
+    val fallbackToSystemSpeech: StateFlow<Boolean> = _fallbackToSystemSpeech.asStateFlow()
+
+    fun consumeFallbackToSystemSpeech() {
+        _fallbackToSystemSpeech.value = false
+    }
+
     fun clearError() {
         _errorMessage.value = null
     }
@@ -120,6 +127,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun startListening() {
+        Log.d(TAG, "startListening")
         if (_listeningState.value == ListeningState.Listening) {
             stopListening()
             return
@@ -131,12 +139,16 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             onError = { msg ->
                 _errorMessage.value = msg
                 _listeningState.value = ListeningState.Idle
+                if (msg != "Нет разрешения на микрофон") {
+                    _fallbackToSystemSpeech.value = true
+                }
             },
         ).also { it.startListening() }
     }
 
     /** Результат из встроенного SpeechRecognizer или системного диалога распознавания. */
     fun onSpeechResult(text: String) {
+        Log.d(TAG, "onSpeechResult: $text")
         _listeningState.value = ListeningState.Processing
         handleVoicePhrase(text)
         _listeningState.value = ListeningState.Idle
@@ -219,6 +231,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun handleVoicePhrase(phrase: String) {
+        Log.d(TAG, "handleVoicePhrase: $phrase")
         val trimmed = phrase.trim()
         if (trimmed.isEmpty()) {
             _errorMessage.value = getString(R.string.error_empty_phrase)

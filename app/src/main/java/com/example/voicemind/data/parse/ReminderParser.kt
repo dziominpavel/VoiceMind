@@ -39,6 +39,26 @@ class ReminderParser(
         var usedPartOfDay = false
         var relativeOnly = false
 
+        // Relative: через полчаса
+        RELATIVE_HALF.find(lowerText)?.let { m ->
+            spans += m.range
+            val fire = zonedNow.plusMinutes(30)
+            return finish(
+                rawPhrase, text, spans, fire.toInstant(), warnings,
+                confidence = 0.85f, relativeOnly = true,
+            )
+        }
+
+        // Relative: через полтора часа
+        RELATIVE_ONE_HALF.find(lowerText)?.let { m ->
+            spans += m.range
+            val fire = zonedNow.plusMinutes(90)
+            return finish(
+                rawPhrase, text, spans, fire.toInstant(), warnings,
+                confidence = 0.85f, relativeOnly = true,
+            )
+        }
+
         // Relative: через N минут/часов/дней
         RELATIVE_DELTA.find(lowerText)?.let { m ->
             spans += m.range
@@ -140,6 +160,37 @@ class ReminderParser(
             }
         }
 
+        // в 9 вечера / в 10 утра / в 3 дня / в 2 ночи
+        if (time == null) {
+            TIME_HOURS_PART.find(lowerText)?.let { m ->
+                spans += m.range
+                val hour = m.groupValues[1].toInt()
+                val part = m.groupValues[2]
+                val h = when (part) {
+                    "утра", "утром" -> hour
+                    "дня", "днём", "днем" -> if (hour == 12) 12 else hour + 12
+                    "вечера", "вечером" -> if (hour == 12) 12 else hour + 12
+                    "ночи", "ночью" -> if (hour == 12) 0 else hour
+                    else -> hour
+                }
+                time = LocalTime.of(h.coerceIn(0, 23), 0)
+                hadExplicitTime = true
+            }
+        }
+
+        // в полночь / в полдень / в полдня / в 12 ночи / в 12 дня ...
+        if (time == null) {
+            TIME_MIDNIGHT_NOON.find(lowerText)?.let { m ->
+                spans += m.range
+                val token = m.groupValues[1]
+                time = when {
+                    token.startsWith("полночь") || token.contains("ночи") -> LocalTime.of(0, 0)
+                    else -> LocalTime.of(12, 0)
+                }
+                hadExplicitTime = true
+            }
+        }
+
         // в N часов [M минут]
         if (time == null) {
             TIME_HOURS_MIN.find(lowerText)?.let { m ->
@@ -160,7 +211,22 @@ class ReminderParser(
             }
         }
 
-        // утром / вечером
+        // в N (short ambiguous, e.g. "в 9")
+        if (time == null) {
+            TIME_HOURS_SHORT.find(lowerText)?.let { m ->
+                spans += m.range
+                val h = m.groupValues[1].toInt()
+                if (h in 0..23) {
+                    time = LocalTime.of(h, 0)
+                    hadExplicitTime = true
+                    if (h in 1..11) {
+                        warnings += ParseWarning.TIME_AMBIGUOUS
+                    }
+                }
+            }
+        }
+
+        // утром / вечером (standalone or override)
         PART_OF_DAY.find(lowerText)?.let { m ->
             spans += m.range
             time = partOfDayTime(m.groupValues[1])
@@ -336,6 +402,8 @@ class ReminderParser(
         private val RELATIVE_DELTA = Regex(
             """через\s+(?:(\d+)\s*)?(минут|минуты|минуту|мин|час|часа|часов|ч|день|дня|дней)""",
         )
+        private val RELATIVE_HALF = Regex("""${WB}через\s+полчаса${WE}""")
+        private val RELATIVE_ONE_HALF = Regex("""${WB}через\s+полтора\s+часа${WE}""")
         private val DAY_TODAY = Regex("""${WB}сегодня${WE}""")
         private val DAY_TOMORROW = Regex("""${WB}завтра${WE}""")
         private val DAY_AFTER_TOMORROW = Regex("""${WB}послезавтра${WE}""")
@@ -344,10 +412,13 @@ class ReminderParser(
         )
         // Только с «в », чтобы не спутать 01.06.2026 с временем 6:20
         private val TIME_COLON = Regex("""${WB}в\s+(\d{1,2})[:.](\d{2})""")
+        private val TIME_HOURS_PART = Regex("""${WB}в\s+(\d{1,2})\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""")
+        private val TIME_MIDNIGHT_NOON = Regex("""${WB}в\s+(полночь|полдень|полдня|12\s+ночи|12\s+дня|12\s+утра|12\s+вечера)${WE}""")
         private val TIME_HOURS = Regex("""${WB}в\s+(\d{1,2})\s+час(?:а|ов)?${WE}""")
         private val TIME_HOURS_MIN = Regex(
             """${WB}в\s+(\d{1,2})\s+час(?:а|ов)?\s+(\d{1,2})\s+минут""",
         )
+        private val TIME_HOURS_SHORT = Regex("""${WB}в\s+(\d{1,2})${WE}""")
         private val PART_OF_DAY = Regex("""${WB}(утром|днём|днем|вечером|ночью)${WE}""")
         private val DATE_DMY = Regex("""${WB}(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?${WE}""")
         private val DATE_DAY_MONTH = Regex(
