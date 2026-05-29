@@ -7,7 +7,7 @@ import java.util.Locale
 
 object FormatUtils {
 
-    private val dateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale("ru"))
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.forLanguageTag("ru"))
 
     fun formatFireAt(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
         Instant.ofEpochMilli(epochMillis).atZone(zone).format(dateTimeFormatter)
@@ -40,6 +40,7 @@ object FormatUtils {
         "FIRED" -> "Сработало"
         "DISMISSED" -> "Выполнено"
         "CANCELLED" -> "Отменено"
+        "COMPLETED" -> "Выполнено"
         else -> status
     }
 }

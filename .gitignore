@@ -15,10 +15,18 @@ build/
 # Local SDK path (machine-specific)
 local.properties
 
-# IDE — VS Code / Cursor local state (rules in repo are under .cursor/rules if added explicitly)
+# IDE — VS Code / Cursor / Windsurf
+#   Rules и workflows коммитятся intentionally; всё остальное (plans, cache, sessions) — local state.
 .vscode/
-.cursor/plans/
 *.code-workspace
+
+# Cursor
+.cursor/plans/
+
+# Windsurf
+.windsurf/*
+!.windsurf/rules/
+!.windsurf/workflows/
 
 # OS
 .DS_Store

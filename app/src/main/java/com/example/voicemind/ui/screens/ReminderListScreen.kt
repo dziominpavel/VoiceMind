@@ -1,21 +1,37 @@
 package com.example.voicemind.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
@@ -23,16 +39,19 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
+import com.example.voicemind.data.ReminderStatus
+import com.example.voicemind.ui.components.EmptyState
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.viewmodel.ReminderListTab
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ReminderListScreen(
     selectedTab: ReminderListTab,
@@ -42,15 +61,15 @@ fun ReminderListScreen(
     onUpcomingClick: (Long) -> Unit,
     onHistoryClick: (Reminder) -> Unit,
     onCancel: (Long) -> Unit,
+    onComplete: (Long) -> Unit,
+    onVoiceClick: () -> Unit,
+    onMicPermissionDenied: () -> Unit,
+    onManualCreateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val reminders = when (selectedTab) {
         ReminderListTab.Upcoming -> upcomingReminders
         ReminderListTab.History -> historyReminders
-    }
-    val emptyText = when (selectedTab) {
-        ReminderListTab.Upcoming -> stringResource(R.string.list_empty)
-        ReminderListTab.History -> stringResource(R.string.list_history_empty)
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -68,37 +87,74 @@ fun ReminderListScreen(
         }
 
         if (reminders.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(Spacing.md),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = emptyText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            EmptyState(
+                icon = if (selectedTab == ReminderListTab.Upcoming) Icons.Default.Schedule else Icons.Default.History,
+                title = if (selectedTab == ReminderListTab.Upcoming) {
+                    stringResource(R.string.list_empty)
+                } else {
+                    stringResource(R.string.list_history_empty)
+                },
+                subtitle = stringResource(R.string.list_empty_subtitle),
+                modifier = Modifier.fillMaxSize(),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
                     .padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 items(reminders, key = { it.id }) { reminder ->
+                    val itemModifier = Modifier.animateItemPlacement(
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                    )
                     when (selectedTab) {
                         ReminderListTab.Upcoming -> SwipeableUpcomingCard(
                             reminder = reminder,
                             onClick = { onUpcomingClick(reminder.id) },
                             onCancel = { onCancel(reminder.id) },
+                            onComplete = { onComplete(reminder.id) },
+                            modifier = itemModifier,
                         )
                         ReminderListTab.History -> HistoryReminderCard(
                             reminder = reminder,
                             onClick = { onHistoryClick(reminder) },
+                            modifier = itemModifier,
                         )
                     }
+                }
+            }
+        }
+
+        BottomAppBar {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledIconButton(
+                    onClick = onVoiceClick,
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = stringResource(R.string.home_mic_start),
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
+                FilledTonalIconButton(
+                    onClick = onManualCreateClick,
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.home_manual_create),
+                        modifier = Modifier.size(24.dp),
+                    )
                 }
             }
         }
@@ -111,6 +167,8 @@ private fun SwipeableUpcomingCard(
     reminder: Reminder,
     onClick: () -> Unit,
     onCancel: () -> Unit,
+    onComplete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -126,6 +184,7 @@ private fun SwipeableUpcomingCard(
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
+        modifier = modifier,
         backgroundContent = {
             Row(
                 modifier = Modifier
@@ -145,7 +204,7 @@ private fun SwipeableUpcomingCard(
         UpcomingReminderCard(
             reminder = reminder,
             onClick = onClick,
-            onCancel = onCancel,
+            onComplete = onComplete,
         )
     }
 }
@@ -154,32 +213,65 @@ private fun SwipeableUpcomingCard(
 private fun UpcomingReminderCard(
     reminder: Reminder,
     onClick: () -> Unit,
-    onCancel: () -> Unit,
+    onComplete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val relative = FormatUtils.formatRelativeFireAt(reminder.fireAt)
+    val isOverdue = reminder.fireAt < System.currentTimeMillis() &&
+        reminder.status == ReminderStatus.SCHEDULED.name
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = modifier.fillMaxWidth(),
+        colors = if (isOverdue) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+            )
+        } else {
+            CardDefaults.cardColors()
+        },
     ) {
-        Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(
-                text = FormatUtils.formatFireAt(reminder.fireAt),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+        Row(
+            modifier = Modifier.padding(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = false,
+                onCheckedChange = { if (it) onComplete() },
             )
-            Text(
-                text = reminder.body,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Row(
+            Spacer(modifier = Modifier.width(Spacing.sm))
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = Spacing.xs),
-                horizontalArrangement = Arrangement.End,
+                    .weight(1f)
+                    .clickable(onClick = onClick),
             ) {
-                OutlinedButton(onClick = onCancel) {
-                    Text(stringResource(R.string.list_cancel))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = FormatUtils.formatFireAt(reminder.fireAt),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (isOverdue) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xxs))
+                        Text(
+                            text = relative,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.height(Spacing.xxs))
+                Text(
+                    text = reminder.body,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
     }
@@ -189,21 +281,38 @@ private fun UpcomingReminderCard(
 private fun HistoryReminderCard(
     reminder: Reminder,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    val isDone = reminder.status == ReminderStatus.DISMISSED.name ||
+        reminder.status == ReminderStatus.COMPLETED.name
+
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(Spacing.md)) {
-            Text(
-                text = FormatUtils.formatFireAt(reminder.fireAt),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = FormatUtils.formatFireAt(reminder.fireAt),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.height(Spacing.xxs))
             Text(
                 text = reminder.body,
                 style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                color = if (isDone) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
             )
             Text(
                 text = FormatUtils.statusLabel(reminder.status),

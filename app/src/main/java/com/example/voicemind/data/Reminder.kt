@@ -17,7 +17,6 @@ data class Reminder(
     val fireAt: Long,
     val body: String,
     val rawPhrase: String?,
-    val deliveryMode: String,
     val status: String,
     val createdAt: Long,
     val snoozeCount: Int = 0,

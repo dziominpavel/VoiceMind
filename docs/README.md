@@ -14,13 +14,15 @@
 | **[REMINDER_PARSING.md](REMINDER_PARSING.md)** | Правила парсинга русских фраз, тесты |
 | **[NOTIFICATION_MODES.md](NOTIFICATION_MODES.md)** | Режимы оповещения и разрешения Android |
 | **[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** | UI «CLEAR BELL» (не GymProgress) |
+| **[UI_IMPROVEMENT_PLAN.md](UI_IMPROVEMENT_PLAN.md)** | План UI/UX-реворка (Home, формы, список, настройки) |
 | **[FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md)** | Дерево каталогов |
 
 ## Принципы
 
 - Источник истины — **код**; после bootstrap обновлять docs в том же PR.
 - **GymProgress** — референс структуры docs и стиля кода, не продуктовых требований.
-- Планы сессий в `.cursor/plans/`, roadmap — в `FEATURE_PLAN.md`.
+- Roadmap — в `FEATURE_PLAN.md`.
+- Планы сессий в Cursor — `.cursor/plans/`; в Windsurf — `.windsurf/workflows/`.
 
 ## Корень репозитория
 

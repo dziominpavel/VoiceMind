@@ -1,0 +1,34 @@
+---
+title: Gradle & Dependencies
+description: Контроль зависимостей и версий
+globs: ["**/build.gradle.kts", "**/libs.versions.toml"]
+alwaysApply: false
+---
+
+# Gradle & Dependencies
+
+## Разрешённые зависимости (уже в проекте)
+- Compose BOM + Material 3 + Material Icons Extended + Adaptive Navigation Suite
+- Room (runtime, ktx, ksp compiler)
+- DataStore Preferences
+- Glance (AppWidget)
+- JUnit, Espresso, Compose UI Test
+
+## Запрещено добавлять без обсуждения
+- Retrofit / OkHttp — MVP offline, только фаза 5 fallback (OpenRouter).
+- Hilt / Dagger — проект использует manual DI / ViewModel factory.
+- Lottie, Coil, Accompanist — не нужны в MVP напоминалки.
+- Any third-party push SDK (Firebase Cloud Messaging и т.д.).
+- Новые Compose BOM-библиотеки без проверки minSdk 26.
+
+## Версии
+- minSdk 26, targetSdk 36, compileSdk 36.
+- Java 17.
+- Kotlin Compose Compiler — через плагин `libs.plugins.kotlin.compose`.
+- Room — через KSP (`libs.plugins.ksp`).
+
+## Правила
+- Версии централизованы в `gradle/libs.versions.toml`.
+- `version.properties` — major.minor.patch, авто-bump patch при assemble.
+- ProGuard: `isMinifyEnabled = true` в release.
+- Не поднимать `minSdk` без явной причины.

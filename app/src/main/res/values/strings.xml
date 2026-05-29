@@ -1,19 +1,16 @@
 <resources>
     <string name="app_name">VoiceMind</string>
-    <string name="tab_home">Главная</string>
+    <string name="widget_mic_label">VoiceMind Микрофон</string>
+    <string name="widget_list_label">VoiceMind Напоминания</string>
+    <string name="widget_list_title">Ближайшие</string>
     <string name="tab_list">Список</string>
     <string name="tab_settings">Настройки</string>
 
-    <string name="home_voice_section_title">Голосом</string>
-    <string name="home_voice_section_subtitle">Скажите: «завтра в 9:00 позвонить соседу» — приложение разберёт дату и текст</string>
-    <string name="home_manual_section_title">Вручную</string>
-    <string name="home_manual_section_subtitle">Укажите дату, время и текст напоминания сами</string>
     <string name="home_manual_create">Создать напоминание</string>
     <string name="home_mic_start">Начать запись</string>
     <string name="home_mic_stop">Остановить запись</string>
     <string name="home_listening">Слушаю…</string>
     <string name="home_processing">Обрабатываю…</string>
-    <string name="permission_mic_rationale">Нужен доступ к микрофону для голосовых напоминаний</string>
     <string name="error_mic_denied">Нужен доступ к микрофону — включите в настройках приложения</string>
     <string name="error_speech_unavailable">На устройстве нет распознавания речи. Установите Google или включите сервис речи в настройках</string>
 
@@ -22,13 +19,23 @@
     <string name="list_tab_upcoming">Предстоящие</string>
     <string name="list_tab_history">История</string>
     <string name="list_scheduled_header">Запланировано</string>
-
+    <string name="list_empty_subtitle">Создайте напоминание голосом или текстом</string>
     <string name="home_next_title">Ближайшее</string>
     <string name="home_next_in">через %1$s</string>
 
     <string name="detail_title">Напоминание</string>
     <string name="detail_status_label">Статус</string>
     <string name="detail_close">Закрыть</string>
+    <string name="detail_edit">Редактировать</string>
+    <string name="detail_delete">Удалить</string>
+    <string name="detail_delete_confirm_title">Удалить напоминание?</string>
+    <string name="detail_delete_confirm_text">Это действие нельзя отменить.</string>
+    <string name="detail_snooze">Отложить</string>
+    <string name="detail_snooze_10">+10 минут</string>
+    <string name="detail_snooze_30">+30 минут</string>
+    <string name="detail_snooze_1h">+1 час</string>
+    <string name="detail_duplicate">Повторить</string>
+    <string name="detail_cancel">Отменить</string>
 
     <string name="manual_create_title">Новое напоминание</string>
     <string name="manual_edit_title">Редактировать</string>
@@ -41,10 +48,20 @@
     <string name="settings_exact_alarm_granted">Точные будильники: разрешены</string>
     <string name="settings_exact_alarm_denied">Точные будильники: нужно разрешение в настройках</string>
     <string name="settings_open_exact_alarm">Открыть настройки будильников</string>
-    <string name="settings_defaults_title">По умолчанию</string>
+    <string name="settings_defaults_title">Поведение</string>
+    <string name="settings_notifications_title">Оповещения</string>
+    <string name="settings_use_alarm_sound">Звук будильника</string>
+    <string name="settings_use_alarm_sound_hint">Громкий звонок при срабатывании</string>
+    <string name="settings_use_push_notification">Пуш-уведомление</string>
+    <string name="settings_use_push_notification_hint">Показывать уведомление на экране</string>
+    <string name="settings_use_vibration">Вибрация</string>
+    <string name="settings_use_vibration_hint">Вибрировать при срабатывании</string>
     <string name="settings_confirm_before_schedule">Спрашивать подтверждение после голосового ввода</string>
+    <string name="settings_confirm_before_schedule_hint">Показывать экран проверки перед сохранением</string>
     <string name="settings_test_hint">Для проверки создайте напоминание на 2–3 минуты вперёд и сверните приложение.</string>
     <string name="settings_version">Версия %1$s · %2$s</string>
+    <string name="settings_about_title">О приложении</string>
+    <string name="settings_request_notifications">Разрешить уведомления</string>
 
     <string name="list_cancel">Отменить</string>
 
@@ -62,7 +79,6 @@
     <string name="error_save_failed">Не удалось сохранить напоминание</string>
     <string name="error_cancel_failed">Не удалось отменить</string>
 
-    <string name="confirm_title">Подтвердите</string>
     <string name="confirm_voice_title">Проверьте разбор</string>
     <string name="confirm_back">Назад</string>
     <string name="confirm_phrase_label">Исходная фраза</string>
@@ -71,19 +87,19 @@
     <string name="confirm_pick_date">Дата</string>
     <string name="confirm_pick_time">Время</string>
     <string name="confirm_body_label">Текст напоминания</string>
-    <string name="confirm_delivery_label">Как оповестить</string>
     <string name="confirm_save">Сохранить</string>
     <string name="confirm_ok">OK</string>
     <string name="confirm_cancel">Отмена</string>
 
-    <string name="delivery_notification">Уведомление</string>
-    <string name="delivery_alarm">Как будильник</string>
-    <string name="delivery_vibrate">Только вибрация</string>
-    <string name="delivery_silent">Тихое</string>
+    <string name="preset_plus_15_min">+15 мин</string>
+    <string name="preset_plus_1_hour">+1 ч</string>
+    <string name="preset_tomorrow_9">Завтра 9:00</string>
+    <string name="preset_plus_1_week">+1 неделя</string>
 
     <string name="warning_time_ambiguous">Время может быть неточным — уточните</string>
     <string name="warning_date_year">Год подставлен автоматически</string>
     <string name="warning_no_time">Время не распознано — выберите вручную</string>
     <string name="warning_body_empty">Текст напоминания пустой</string>
     <string name="warning_past_adjusted">Время уже прошло — предложено завтра</string>
+    <string name="confirm_low_confidence_hint">Низкая уверенность в распознавании — проверьте данные</string>
 </resources>

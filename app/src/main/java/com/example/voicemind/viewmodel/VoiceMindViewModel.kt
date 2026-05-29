@@ -5,14 +5,15 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.voicemind.R
-import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.SettingsRepository
+import android.content.Intent
 import com.example.voicemind.data.parse.ReminderParser
 import com.example.voicemind.data.parse.isVoiceParseSuccessful
 import com.example.voicemind.data.speech.SpeechInputController
+import com.example.voicemind.ui.widget.WidgetActions
 import com.example.voicemind.util.ReminderPermissions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -64,10 +65,16 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         .map { it.firstOrNull() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val defaultDeliveryMode = settings.defaultDeliveryMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeliveryMode.NOTIFICATION)
-
     val confirmBeforeSchedule = settings.confirmBeforeSchedule
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val useAlarmSound = settings.useAlarmSound
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val usePushNotification = settings.usePushNotification
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val useVibration = settings.useVibration
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
     private val _fallbackToSystemSpeech = MutableStateFlow(false)
@@ -75,6 +82,20 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun consumeFallbackToSystemSpeech() {
         _fallbackToSystemSpeech.value = false
+    }
+
+    fun handleIntent(intent: Intent?) {
+        when (intent?.action) {
+            WidgetActions.ACTION_START_VOICE -> {
+                _fallbackToSystemSpeech.value = true
+            }
+            WidgetActions.ACTION_OPEN_REMINDER -> {
+                val id = intent.getLongExtra(WidgetActions.EXTRA_REMINDER_ID, -1L)
+                if (id != -1L) {
+                    openReminderForEdit(id)
+                }
+            }
+        }
     }
 
     fun clearError() {
@@ -106,15 +127,27 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _listTab.value = tab
     }
 
-    fun setDefaultDeliveryMode(mode: DeliveryMode) {
-        viewModelScope.launch {
-            settings.setDefaultDeliveryMode(mode)
-        }
-    }
-
     fun setConfirmBeforeSchedule(enabled: Boolean) {
         viewModelScope.launch {
             settings.setConfirmBeforeSchedule(enabled)
+        }
+    }
+
+    fun setUseAlarmSound(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setUseAlarmSound(enabled)
+        }
+    }
+
+    fun setUsePushNotification(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setUsePushNotification(enabled)
+        }
+    }
+
+    fun setUseVibration(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setUseVibration(enabled)
         }
     }
 
@@ -122,7 +155,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun openManualCreate() {
         _manualDraft.value = ManualReminderDraft(
             fireAtMillis = defaultFireAtMillis(),
-            deliveryMode = defaultDeliveryMode.value,
         )
     }
 
@@ -159,6 +191,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _listeningState.value = ListeningState.Idle
     }
 
+    /** Быстрый текстовый ввод — тот же парсер, что и для голоса. */
+    fun onTextInput(text: String) {
+        handleVoicePhrase(text)
+    }
+
     fun stopListening() {
         speechController?.stopListening()
         speechController = null
@@ -170,13 +207,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun updatePending(
         body: String,
         fireAtMillis: Long?,
-        deliveryMode: DeliveryMode,
     ) {
         val pending = _pendingConfirm.value ?: return
         _pendingConfirm.value = pending.copy(
             body = body,
             fireAtMillis = fireAtMillis,
-            deliveryMode = deliveryMode,
         )
     }
 
@@ -186,7 +221,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         saveReminder(
             body = pending.body,
             fireAtMillis = pending.fireAtMillis,
-            deliveryMode = pending.deliveryMode,
             rawPhrase = pending.rawPhrase,
             editingId = null,
         ) { _pendingConfirm.value = null }
@@ -196,13 +230,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun saveManualReminder(
         body: String,
         fireAtMillis: Long?,
-        deliveryMode: DeliveryMode,
     ) {
         val draft = _manualDraft.value ?: return
         saveReminder(
             body = body,
             fireAtMillis = fireAtMillis,
-            deliveryMode = deliveryMode,
             rawPhrase = draft.rawPhrase,
             editingId = draft.editingReminderId,
         ) { _manualDraft.value = null }
@@ -211,6 +243,12 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun cancelReminder(id: Long) {
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.cancelReminder(id)
+        }
+    }
+
+    fun completeReminder(id: Long) {
+        safeDb(getString(R.string.error_cancel_failed)) {
+            repository.completeReminder(id)
         }
     }
 
@@ -230,6 +268,46 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _detailReminder.value = reminder
     }
 
+    fun deleteReminder(id: Long) {
+        safeDb(getString(R.string.error_cancel_failed)) {
+            repository.deleteReminder(id)
+            _detailReminder.value = null
+        }
+    }
+
+    fun snoozeReminder(id: Long, minutes: Int) {
+        safeDb(getString(R.string.error_save_failed)) {
+            val reminder = repository.getById(id) ?: return@safeDb
+            val newFireAt = reminder.fireAt + minutes * 60_000L
+            repository.updateAndSchedule(
+                reminder.copy(
+                    fireAt = newFireAt,
+                    status = ReminderStatus.SNOOZED.name,
+                    snoozeCount = reminder.snoozeCount + 1,
+                ),
+            )
+            _detailReminder.value = null
+        }
+    }
+
+    fun duplicateReminder(reminder: Reminder) {
+        safeDb(getString(R.string.error_save_failed)) {
+            val now = System.currentTimeMillis()
+            repository.insertAndSchedule(
+                Reminder(
+                    clientId = UUID.randomUUID().toString(),
+                    fireAt = now + 3_600_000L, // +1 час от текущего момента
+                    body = reminder.body,
+                    rawPhrase = reminder.rawPhrase,
+                    status = ReminderStatus.SCHEDULED.name,
+                    createdAt = now,
+                    alarmRequestCode = 0,
+                ),
+            )
+            _detailReminder.value = null
+        }
+    }
+
     private fun handleVoicePhrase(phrase: String) {
         Log.d(TAG, "handleVoicePhrase: $phrase")
         val trimmed = phrase.trim()
@@ -243,7 +321,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 rawPhrase = trimmed,
                 body = result.body.trim(),
                 fireAtMillis = result.fireAt?.toEpochMilli(),
-                deliveryMode = defaultDeliveryMode.value,
                 confidence = result.confidence,
                 warnings = result.warnings,
             )
@@ -257,7 +334,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             _manualDraft.value = ManualReminderDraft(
                 body = result.body.ifBlank { trimmed },
                 fireAtMillis = result.fireAt?.toEpochMilli() ?: defaultFireAtMillis(),
-                deliveryMode = defaultDeliveryMode.value,
                 rawPhrase = trimmed,
                 fromVoiceParseFailure = true,
             )
@@ -267,7 +343,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     private fun saveReminder(
         body: String,
         fireAtMillis: Long?,
-        deliveryMode: DeliveryMode,
         rawPhrase: String?,
         editingId: Long?,
         onSuccess: () -> Unit,
@@ -298,7 +373,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                         fireAt = fireAt,
                         body = body.trim(),
                         rawPhrase = rawPhrase ?: existing.rawPhrase,
-                        deliveryMode = deliveryMode.name,
                     ),
                 )
             } else {
@@ -309,7 +383,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                         fireAt = fireAt,
                         body = body.trim(),
                         rawPhrase = rawPhrase,
-                        deliveryMode = deliveryMode.name,
                         status = ReminderStatus.SCHEDULED.name,
                         createdAt = now,
                         alarmRequestCode = 0,
@@ -321,12 +394,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun manualDraftFromReminder(reminder: Reminder): ManualReminderDraft {
-        val mode = runCatching { DeliveryMode.valueOf(reminder.deliveryMode) }
-            .getOrDefault(DeliveryMode.NOTIFICATION)
         return ManualReminderDraft(
             body = reminder.body,
             fireAtMillis = reminder.fireAt,
-            deliveryMode = mode,
             rawPhrase = reminder.rawPhrase,
             editingReminderId = reminder.id,
         )

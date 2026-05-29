@@ -2,14 +2,20 @@ package com.example.voicemind
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,10 +35,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.voicemind.data.speech.SpeechRecognition
 import com.example.voicemind.ui.screens.ConfirmReminderScreen
-import com.example.voicemind.ui.screens.HomeScreen
 import com.example.voicemind.ui.screens.ManualReminderScreen
 import com.example.voicemind.ui.screens.ReminderDetailScreen
 import com.example.voicemind.ui.screens.ReminderListScreen
@@ -42,33 +48,41 @@ import com.example.voicemind.util.ReminderPermissions
 import com.example.voicemind.viewmodel.VoiceMindViewModel
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: VoiceMindViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             VoiceMindTheme {
-                VoiceMindApp()
+                VoiceMindApp(viewModel = viewModel)
             }
         }
+        viewModel.handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        viewModel.handleIntent(intent)
     }
 }
 
 @Composable
 fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val context = LocalContext.current
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.LIST) }
     val snackbarHostState = remember { SnackbarHostState() }
     val errorMessage by viewModel.errorMessage.collectAsState()
-    val listeningState by viewModel.listeningState.collectAsState()
     val pendingConfirm by viewModel.pendingConfirm.collectAsState()
     val manualDraft by viewModel.manualDraft.collectAsState()
     val upcomingReminders by viewModel.upcomingReminders.collectAsState()
     val historyReminders by viewModel.historyReminders.collectAsState()
-    val nextReminder by viewModel.nextReminder.collectAsState()
     val listTab by viewModel.listTab.collectAsState()
     val detailReminder by viewModel.detailReminder.collectAsState()
-    val defaultDeliveryMode by viewModel.defaultDeliveryMode.collectAsState()
     val confirmBeforeSchedule by viewModel.confirmBeforeSchedule.collectAsState()
+    val useAlarmSound by viewModel.useAlarmSound.collectAsState()
+    val usePushNotification by viewModel.usePushNotification.collectAsState()
+    val useVibration by viewModel.useVibration.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -141,6 +155,18 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
         }
     }
 
+    val activity = context as? Activity
+
+    BackHandler {
+        when {
+            detailReminder != null -> viewModel.dismissDetail()
+            manualDraft != null -> viewModel.dismissManual()
+            pendingConfirm != null -> viewModel.dismissConfirm()
+            currentDestination == AppDestinations.SETTINGS -> currentDestination = AppDestinations.LIST
+            else -> activity?.finish()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -167,15 +193,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                 },
             ) {
                 when (currentDestination) {
-                    AppDestinations.HOME -> HomeScreen(
-                        listeningState = listeningState,
-                        nextReminder = nextReminder,
-                        onVoiceClick = { startVoiceInput() },
-                        onMicPermissionDenied = {
-                            viewModel.showError(context.getString(R.string.error_mic_denied))
-                        },
-                        onManualCreateClick = { viewModel.openManualCreate() },
-                    )
                     AppDestinations.LIST -> ReminderListScreen(
                         selectedTab = listTab,
                         onTabSelected = { viewModel.setListTab(it) },
@@ -184,43 +201,80 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         onUpcomingClick = { viewModel.openReminderForEdit(it) },
                         onHistoryClick = { viewModel.openReminderDetail(it) },
                         onCancel = { viewModel.cancelReminder(it) },
+                        onComplete = { viewModel.completeReminder(it) },
+                        onVoiceClick = { startVoiceInput() },
+                        onMicPermissionDenied = {
+                            viewModel.showError(context.getString(R.string.error_mic_denied))
+                        },
+                        onManualCreateClick = { viewModel.openManualCreate() },
                     )
                     AppDestinations.SETTINGS -> SettingsScreen(
-                        defaultDeliveryMode = defaultDeliveryMode,
                         confirmBeforeSchedule = confirmBeforeSchedule,
-                        onDefaultDeliveryModeChange = { viewModel.setDefaultDeliveryMode(it) },
+                        useAlarmSound = useAlarmSound,
+                        usePushNotification = usePushNotification,
+                        useVibration = useVibration,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
+                        onUseAlarmSoundChange = { viewModel.setUseAlarmSound(it) },
+                        onUsePushNotificationChange = { viewModel.setUsePushNotification(it) },
+                        onUseVibrationChange = { viewModel.setUseVibration(it) },
+                        onRequestNotificationPermission = {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        },
                     )
                 }
             }
         }
 
-        pendingConfirm?.let { pending ->
-            ConfirmReminderScreen(
-                pending = pending,
-                onBack = { viewModel.dismissConfirm() },
-                onSave = { body, fireAt, mode ->
-                    viewModel.updatePending(body, fireAt, mode)
-                },
-                onConfirm = { viewModel.confirmVoiceReminder() },
-            )
+        AnimatedVisibility(
+            visible = pendingConfirm != null,
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+        ) {
+            pendingConfirm?.let { pending ->
+                ConfirmReminderScreen(
+                    pending = pending,
+                    onBack = { viewModel.dismissConfirm() },
+                    onSave = { body, fireAt ->
+                        viewModel.updatePending(body, fireAt)
+                    },
+                    onConfirm = { viewModel.confirmVoiceReminder() },
+                )
+            }
         }
 
-        manualDraft?.let { draft ->
-            ManualReminderScreen(
-                draft = draft,
-                onBack = { viewModel.dismissManual() },
-                onSave = { body, fireAt, mode ->
-                    viewModel.saveManualReminder(body, fireAt, mode)
-                },
-            )
+        AnimatedVisibility(
+            visible = manualDraft != null,
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+        ) {
+            manualDraft?.let { draft ->
+                ManualReminderScreen(
+                    draft = draft,
+                    onBack = { viewModel.dismissManual() },
+                    onSave = { body, fireAt ->
+                        viewModel.saveManualReminder(body, fireAt)
+                    },
+                )
+            }
         }
 
-        detailReminder?.let { reminder ->
-            ReminderDetailScreen(
-                reminder = reminder,
-                onBack = { viewModel.dismissDetail() },
-            )
+        AnimatedVisibility(
+            visible = detailReminder != null,
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+        ) {
+            detailReminder?.let { reminder ->
+                ReminderDetailScreen(
+                    reminder = reminder,
+                    onBack = { viewModel.dismissDetail() },
+                    onEdit = { viewModel.openReminderForEdit(reminder.id) },
+                    onDelete = { viewModel.deleteReminder(reminder.id) },
+                    onCancel = { viewModel.cancelReminder(reminder.id) },
+                    onSnooze = { minutes -> viewModel.snoozeReminder(reminder.id, minutes) },
+                    onDuplicate = { viewModel.duplicateReminder(reminder) },
+                )
+            }
         }
+
     }
 }

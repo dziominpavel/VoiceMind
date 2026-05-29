@@ -2,7 +2,6 @@ package com.example.voicemind.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,12 +11,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,9 +29,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.voicemind.R
-import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
-import com.example.voicemind.ui.components.DeliveryModePicker
+import com.example.voicemind.ui.components.DateTimeField
+import com.example.voicemind.ui.components.PresetChips
+import com.example.voicemind.ui.components.TimePreset
+import com.example.voicemind.ui.components.WarningCard
+import com.example.voicemind.ui.components.toEpochMillis
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.viewmodel.ManualReminderDraft
 import java.time.Instant
@@ -46,12 +48,11 @@ import java.time.ZoneId
 fun ManualReminderScreen(
     draft: ManualReminderDraft,
     onBack: () -> Unit,
-    onSave: (body: String, fireAtMillis: Long?, deliveryMode: DeliveryMode) -> Unit,
+    onSave: (body: String, fireAtMillis: Long?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val zone = remember { ZoneId.systemDefault() }
     var body by remember(draft) { mutableStateOf(draft.body) }
-    var deliveryMode by remember(draft) { mutableStateOf(draft.deliveryMode) }
     var fireAtMillis by remember(draft) { mutableStateOf(draft.fireAtMillis) }
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -65,6 +66,12 @@ fun ManualReminderScreen(
 
     val fireAtLabel = fireAtMillis?.let { FormatUtils.formatFireAt(it, zone) }
         ?: stringResource(R.string.confirm_time_not_set)
+
+    val warningMessages = if (draft.fromVoiceParseFailure) {
+        listOf(stringResource(R.string.manual_voice_parse_failed))
+    } else {
+        emptyList()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -81,6 +88,16 @@ fun ManualReminderScreen(
                 },
             )
         },
+        bottomBar = {
+            BottomAppBar {
+                Button(
+                    onClick = { onSave(body.trim(), fireAtMillis) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.confirm_save))
+                }
+            }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -90,38 +107,31 @@ fun ManualReminderScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            if (draft.fromVoiceParseFailure) {
+            WarningCard(messages = warningMessages)
+
+            draft.rawPhrase?.let { phrase ->
                 Text(
-                    text = stringResource(R.string.manual_voice_parse_failed),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    text = stringResource(R.string.confirm_phrase_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                draft.rawPhrase?.let { phrase ->
-                    Text(
-                        text = stringResource(R.string.confirm_phrase_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(text = phrase, style = MaterialTheme.typography.bodyMedium)
-                }
+                Text(
+                    text = phrase,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
-            Text(
-                text = stringResource(R.string.confirm_when_label),
-                style = MaterialTheme.typography.labelLarge,
+            DateTimeField(
+                label = fireAtLabel,
+                onDateClick = { showDatePicker = true },
+                onTimeClick = { showTimePicker = true },
             )
-            Text(
-                text = fireAtLabel,
-                style = MaterialTheme.typography.titleMedium,
+
+            PresetChips(
+                selected = null,
+                onSelected = { fireAtMillis = it.toEpochMillis(zone) },
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                OutlinedButton(onClick = { showDatePicker = true }) {
-                    Text(stringResource(R.string.confirm_pick_date))
-                }
-                OutlinedButton(onClick = { showTimePicker = true }) {
-                    Text(stringResource(R.string.confirm_pick_time))
-                }
-            }
 
             OutlinedTextField(
                 value = body,
@@ -130,20 +140,6 @@ fun ManualReminderScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
             )
-
-            DeliveryModePicker(
-                selected = deliveryMode,
-                onSelected = { deliveryMode = it },
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.xs))
-
-            Button(
-                onClick = { onSave(body.trim(), fireAtMillis, deliveryMode) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.confirm_save))
-            }
         }
     }
 
