@@ -7,21 +7,26 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.example.voicemind.MainActivity
 import com.example.voicemind.R
-import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
+import com.example.voicemind.data.SettingsRepository
 import com.example.voicemind.data.scheduling.ReminderIntents
+import kotlinx.coroutines.flow.first
 
 class ReminderNotifier(private val context: Context) {
 
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val settings = SettingsRepository.getInstance(context)
 
-    fun show(reminder: Reminder) {
+    suspend fun show(reminder: Reminder) {
         NotificationChannels.createAll(context)
-        val mode = runCatching { DeliveryMode.valueOf(reminder.deliveryMode) }
-            .getOrDefault(DeliveryMode.NOTIFICATION)
-        val channelId = NotificationChannels.channelIdFor(mode)
+
+        val useAlarmSound = settings.useAlarmSound.first()
+        val usePush = settings.usePushNotification.first()
+        val useVibration = settings.useVibration.first()
+
+        val channelId = NotificationChannels.channelId()
 
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -44,13 +49,6 @@ class ReminderNotifier(private val context: Context) {
             )
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
-            .setPriority(
-                if (mode == DeliveryMode.ALARM) {
-                    NotificationCompat.PRIORITY_MAX
-                } else {
-                    NotificationCompat.PRIORITY_HIGH
-                },
-            )
             .addAction(
                 R.drawable.ic_notification,
                 context.getString(R.string.notification_action_done),
@@ -67,20 +65,35 @@ class ReminderNotifier(private val context: Context) {
                 ReminderIntents.actionIntent(context, reminder.id, ReminderIntents.ACTION_CANCEL),
             )
 
-        when (mode) {
-            DeliveryMode.VIBRATE_ONLY -> {
-                builder.setSound(null)
-                builder.setVibrate(longArrayOf(0, 300, 150, 300))
-            }
-            DeliveryMode.SILENT -> {
-                builder.setSound(null)
-                builder.setVibrate(null)
-            }
-            DeliveryMode.ALARM -> {
+        when {
+            useAlarmSound && useVibration -> {
                 builder.setCategory(NotificationCompat.CATEGORY_ALARM)
+                builder.setPriority(NotificationCompat.PRIORITY_MAX)
                 builder.setVibrate(longArrayOf(0, 500, 200, 500))
             }
-            DeliveryMode.NOTIFICATION -> Unit
+            useAlarmSound -> {
+                builder.setCategory(NotificationCompat.CATEGORY_ALARM)
+                builder.setPriority(NotificationCompat.PRIORITY_MAX)
+                builder.setVibrate(null)
+            }
+            usePush && useVibration -> {
+                builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+                builder.setVibrate(longArrayOf(0, 300, 150, 300))
+            }
+            usePush -> {
+                builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+                builder.setVibrate(null)
+            }
+            useVibration -> {
+                builder.setSound(null)
+                builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                builder.setVibrate(longArrayOf(0, 300, 150, 300))
+            }
+            else -> {
+                builder.setSound(null)
+                builder.setPriority(NotificationCompat.PRIORITY_LOW)
+                builder.setVibrate(null)
+            }
         }
 
         notificationManager.notify(reminder.id.notificationId(), builder.build())

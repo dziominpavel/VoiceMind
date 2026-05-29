@@ -5,7 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
+internal val DarkColorScheme = darkColorScheme(
     primary = Teal,
     onPrimary = Color.Black,
     primaryContainer = TealContainer,
@@ -25,6 +25,8 @@ private val DarkColorScheme = darkColorScheme(
 fun VoiceMindTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
+        typography = VoiceMindTypography,
+        shapes = VoiceMindShapes,
         content = content,
     )
 }

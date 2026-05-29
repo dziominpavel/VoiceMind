@@ -4,6 +4,23 @@
 
 ```
 VoiceMind/
+├── .windsurf/
+│   ├── rules/                 # Автоматические правила для Windsurf/Cascade
+│   │   ├── project-context.md
+│   │   ├── architecture-guardrails.md
+│   │   ├── kotlin-compose-style.md
+│   │   ├── notification-channels.md
+│   │   ├── parser-rules.md
+│   │   ├── datastore-settings.md
+│   │   ├── ui-theme-rules.md
+│   │   ├── speech-recognition.md
+│   │   ├── testing-rules.md
+│   │   └── gradle-dependencies.md
+│   └── workflows/             # Сценарии: /implement-feature, /parser-work, /db-migration, /code-review
+│       ├── implement-feature.md
+│       ├── parser-work.md
+│       ├── db-migration.md
+│       └── code-review.md
 ├── .cursor/
 │   └── rules/
 │       └── project-context.mdc

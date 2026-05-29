@@ -6,4 +6,5 @@ enum class ReminderStatus {
     DISMISSED,
     CANCELLED,
     SNOOZED,
+    COMPLETED,
 }

@@ -308,4 +308,19 @@ class ReminderParserTest {
         assertEquals(LocalDateTime.of(2026, 5, 17, 19, 0).atZone(zone).toInstant(), r.fireAt)
         assertEquals("фильм", r.body)
     }
+
+    @Test
+    fun in2Days_isVoiceParseSuccessful() {
+        val r = parser.parse("через 2 дня сдать анализы", now)
+        assertTrue(r.isVoiceParseSuccessful())
+        assertNotNull(r.fireAt)
+    }
+
+    @Test
+    fun weekdayPastTime_adjustedToNextWeek() {
+        // сейчас воскресенье 10:00; «в воскресенье в 9:00» уже прошло
+        val r = parser.parse("в воскресенье в 9:00 бранч", now)
+        assertEquals(LocalDateTime.of(2026, 5, 24, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+    }
 }

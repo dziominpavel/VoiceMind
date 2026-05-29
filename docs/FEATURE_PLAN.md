@@ -265,7 +265,6 @@
 После каждой фазы:
 
 - Обновить дату в `PROJECT_OVERVIEW.md` / `ARCHITECTURE.md`.
-- Завести `docs/TECH_DEBT.md` при появлении известных багов.
 - В `README` пометка «MVP реализован» — done.
 
 ---

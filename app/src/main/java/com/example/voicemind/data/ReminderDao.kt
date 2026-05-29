@@ -34,7 +34,7 @@ interface ReminderDao {
     @Query(
         """
         SELECT * FROM reminders
-        WHERE status IN ('FIRED', 'DISMISSED', 'CANCELLED')
+        WHERE status IN ('FIRED', 'DISMISSED', 'CANCELLED', 'COMPLETED')
         ORDER BY fireAt DESC, id DESC
         """,
     )
@@ -61,4 +61,17 @@ interface ReminderDao {
         """,
     )
     suspend fun snooze(id: Long, status: String, fireAt: Long)
+
+    @Query("DELETE FROM reminders WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query(
+        """
+        SELECT * FROM reminders
+        WHERE status IN ('FIRED', 'DISMISSED', 'CANCELLED', 'COMPLETED')
+        ORDER BY fireAt DESC, id DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getRecentHistory(limit: Int): List<Reminder>
 }

@@ -23,11 +23,11 @@ class ReminderParser(
             return emptyResult(rawPhrase, warnings)
         }
 
-        val lowerOrig = text.lowercase(Locale("ru"))
+        val lowerOrig = text.lowercase(Locale.forLanguageTag("ru"))
         val lower = stripPrefixes(lowerOrig)
         val prefixStrip = lowerOrig.length - lower.length
         text = text.substring(prefixStrip)
-        val lowerText = text.lowercase(Locale("ru"))
+        val lowerText = text.lowercase(Locale.forLanguageTag("ru"))
 
         val spans = mutableListOf<IntRange>()
         val zonedNow = now.atZone(zone)
@@ -38,6 +38,7 @@ class ReminderParser(
         var hadTodayWord = false
         var usedPartOfDay = false
         var relativeOnly = false
+        var hadWeekday = false
 
         // Relative: через полчаса
         RELATIVE_HALF.find(lowerText)?.let { m ->
@@ -111,6 +112,7 @@ class ReminderParser(
             val dow = weekdayFromGroup(m.groupValues[1])
             date = nextOrSameWeekday(zonedNow.toLocalDate(), dow, zonedNow.toLocalTime())
             hadExplicitDate = true
+            hadWeekday = true
         }
 
         // Absolute date dd.MM.yyyy
@@ -249,9 +251,15 @@ class ReminderParser(
 
         // Past time adjustment
         if (fireAt != null && fireAt.isBefore(now)) {
-            if (hadTodayWord) {
-                fireAt = fireAt.plus(1, ChronoUnit.DAYS)
-                warnings += ParseWarning.PAST_TIME_ADJUSTED
+            when {
+                hadTodayWord -> {
+                    fireAt = fireAt.plus(1, ChronoUnit.DAYS)
+                    warnings += ParseWarning.PAST_TIME_ADJUSTED
+                }
+                hadWeekday -> {
+                    fireAt = fireAt.plus(7, ChronoUnit.DAYS)
+                    warnings += ParseWarning.PAST_TIME_ADJUSTED
+                }
             }
         }
 

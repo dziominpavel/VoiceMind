@@ -3,6 +3,7 @@ package com.example.voicemind.data
 import android.content.Context
 import com.example.voicemind.data.notification.ReminderNotifier
 import com.example.voicemind.data.scheduling.ReminderScheduler
+import com.example.voicemind.ui.widget.WidgetUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -20,6 +21,7 @@ class ReminderRepository(context: Context) {
         )
         dao.update(saved)
         scheduler.schedule(saved)
+        WidgetUpdater.updateAll(appContext)
         id
     }
 
@@ -31,14 +33,28 @@ class ReminderRepository(context: Context) {
     suspend fun cancelReminder(id: Long) = withContext(Dispatchers.IO) {
         scheduler.cancel(id)
         dao.updateStatus(id, ReminderStatus.CANCELLED.name)
+        WidgetUpdater.updateAll(appContext)
     }
 
     suspend fun dismissReminder(id: Long) = withContext(Dispatchers.IO) {
         scheduler.cancel(id)
         dao.updateStatus(id, ReminderStatus.DISMISSED.name)
+        WidgetUpdater.updateAll(appContext)
     }
 
-    suspend fun snoozeReminder(id: Long, delayMinutes: Int = SNOOZE_MINUTES) = withContext(Dispatchers.IO) {
+    suspend fun completeReminder(id: Long) = withContext(Dispatchers.IO) {
+        scheduler.cancel(id)
+        dao.updateStatus(id, ReminderStatus.COMPLETED.name)
+        WidgetUpdater.updateAll(appContext)
+    }
+
+    suspend fun deleteReminder(id: Long) = withContext(Dispatchers.IO) {
+        scheduler.cancel(id)
+        dao.delete(id)
+        WidgetUpdater.updateAll(appContext)
+    }
+
+    suspend fun snoozeReminder(id: Long, delayMinutes: Int) = withContext(Dispatchers.IO) {
         val reminder = dao.getById(id) ?: return@withContext
         val newFireAt = System.currentTimeMillis() + delayMinutes * 60_000L
         scheduler.cancel(id)
@@ -49,6 +65,7 @@ class ReminderRepository(context: Context) {
             snoozeCount = reminder.snoozeCount + 1,
         )
         scheduler.schedule(updated)
+        WidgetUpdater.updateAll(appContext)
     }
 
     suspend fun markFiredAndShow(id: Long) = withContext(Dispatchers.IO) {
@@ -62,6 +79,7 @@ class ReminderRepository(context: Context) {
         ReminderNotifier(appContext).show(
             reminder.copy(status = ReminderStatus.FIRED.name),
         )
+        WidgetUpdater.updateAll(appContext)
     }
 
     suspend fun rescheduleAll() = withContext(Dispatchers.IO) {
@@ -86,6 +104,7 @@ class ReminderRepository(context: Context) {
         ) {
             scheduler.schedule(updated)
         }
+        WidgetUpdater.updateAll(appContext)
     }
 
     companion object {

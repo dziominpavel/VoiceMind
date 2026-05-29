@@ -16,3 +16,9 @@ val TextPrimaryDark = Color(0xFFE8EAED)
 val TextSecondaryDark = Color(0xFF9BA3B0)
 
 val ErrorCoral = Color(0xFFEF5350)
+
+val WarningAmber = Color(0xFFFFB020)
+val WarningContainer = Color(0xFF332800)
+
+val SuccessGreen = Color(0xFF4CAF50)
+val SuccessContainer = Color(0xFF0D3315)

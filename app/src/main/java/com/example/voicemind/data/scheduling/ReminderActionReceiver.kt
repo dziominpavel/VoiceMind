@@ -23,7 +23,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
             try {
                 when (intent.action) {
                     ReminderIntents.ACTION_DONE -> repo.dismissReminder(reminderId)
-                    ReminderIntents.ACTION_SNOOZE -> repo.snoozeReminder(reminderId)
+                    ReminderIntents.ACTION_SNOOZE -> repo.snoozeReminder(reminderId, ReminderRepository.SNOOZE_MINUTES)
                     ReminderIntents.ACTION_CANCEL -> repo.cancelReminder(reminderId)
                 }
                 notifier.cancelNotification(reminderId)
