@@ -2,7 +2,6 @@ package com.example.voicemind.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,10 +30,7 @@ import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.parse.ParseWarning
 import com.example.voicemind.ui.components.DateTimeField
-import com.example.voicemind.ui.components.PresetChips
-import com.example.voicemind.ui.components.TimePreset
 import com.example.voicemind.ui.components.WarningCard
-import com.example.voicemind.ui.components.toEpochMillis
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.viewmodel.PendingReminderConfirm
 import java.time.Instant
@@ -127,14 +123,6 @@ fun ConfirmReminderScreen(
                 label = fireAtLabel,
                 onDateClick = { showDatePicker = true },
                 onTimeClick = { showTimePicker = true },
-            )
-
-            PresetChips(
-                selected = null,
-                onSelected = {
-                    fireAtMillis = it.toEpochMillis(zone)
-                    emitSave()
-                },
             )
 
             OutlinedTextField(

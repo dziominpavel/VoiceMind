@@ -1,6 +1,7 @@
 package com.example.voicemind.viewmodel
 
 import android.app.Application
+import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,7 +10,6 @@ import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.SettingsRepository
-import android.content.Intent
 import com.example.voicemind.data.parse.ReminderParser
 import com.example.voicemind.data.parse.isVoiceParseSuccessful
 import com.example.voicemind.data.speech.SpeechInputController
@@ -77,6 +77,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     val useVibration = settings.useVibration
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
+    val alarmRingtoneUri = settings.alarmRingtoneUri
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     private val _fallbackToSystemSpeech = MutableStateFlow(false)
     val fallbackToSystemSpeech: StateFlow<Boolean> = _fallbackToSystemSpeech.asStateFlow()
 
@@ -88,6 +91,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         when (intent?.action) {
             WidgetActions.ACTION_START_VOICE -> {
                 _fallbackToSystemSpeech.value = true
+            }
+            WidgetActions.ACTION_OPEN_LIST -> {
+                // App opens to list by default; nothing extra needed.
             }
             WidgetActions.ACTION_OPEN_REMINDER -> {
                 val id = intent.getLongExtra(WidgetActions.EXTRA_REMINDER_ID, -1L)
@@ -148,6 +154,12 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun setUseVibration(enabled: Boolean) {
         viewModelScope.launch {
             settings.setUseVibration(enabled)
+        }
+    }
+
+    fun setAlarmRingtoneUri(uri: String?) {
+        viewModelScope.launch {
+            settings.setAlarmRingtoneUri(uri)
         }
     }
 
@@ -255,9 +267,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun openReminderForEdit(id: Long) {
         safeDb(getString(R.string.error_save_failed)) {
             val reminder = repository.getById(id) ?: return@safeDb
-            if (reminder.status != ReminderStatus.SCHEDULED.name &&
-                reminder.status != ReminderStatus.SNOOZED.name
-            ) {
+            if (reminder.status != ReminderStatus.PENDING.name) {
                 return@safeDb
             }
             _manualDraft.value = manualDraftFromReminder(reminder)
@@ -282,7 +292,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             repository.updateAndSchedule(
                 reminder.copy(
                     fireAt = newFireAt,
-                    status = ReminderStatus.SNOOZED.name,
+                    status = ReminderStatus.PENDING.name,
                     snoozeCount = reminder.snoozeCount + 1,
                 ),
             )
@@ -299,9 +309,10 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                     fireAt = now + 3_600_000L, // +1 час от текущего момента
                     body = reminder.body,
                     rawPhrase = reminder.rawPhrase,
-                    status = ReminderStatus.SCHEDULED.name,
+                    status = ReminderStatus.PENDING.name,
                     createdAt = now,
                     alarmRequestCode = 0,
+                    deliveryMode = reminder.deliveryMode,
                 ),
             )
             _detailReminder.value = null
@@ -377,15 +388,17 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             } else {
                 val now = System.currentTimeMillis()
+                val mode = settings.getDefaultDeliveryMode()
                 repository.insertAndSchedule(
                     Reminder(
                         clientId = UUID.randomUUID().toString(),
                         fireAt = fireAt,
                         body = body.trim(),
                         rawPhrase = rawPhrase,
-                        status = ReminderStatus.SCHEDULED.name,
+                        status = ReminderStatus.PENDING.name,
                         createdAt = now,
                         alarmRequestCode = 0,
+                        deliveryMode = mode.name,
                     ),
                 )
             }

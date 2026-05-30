@@ -1,5 +1,7 @@
 package com.example.voicemind.ui.screens
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,10 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.material.icons.Icons
-import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
@@ -39,10 +38,10 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
@@ -95,7 +94,7 @@ fun ReminderListScreen(
                     stringResource(R.string.list_history_empty)
                 },
                 subtitle = stringResource(R.string.list_empty_subtitle),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.weight(1f),
             )
         } else {
             LazyColumn(
@@ -218,7 +217,7 @@ private fun UpcomingReminderCard(
 ) {
     val relative = FormatUtils.formatRelativeFireAt(reminder.fireAt)
     val isOverdue = reminder.fireAt < System.currentTimeMillis() &&
-        reminder.status == ReminderStatus.SCHEDULED.name
+        reminder.status == ReminderStatus.PENDING.name
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -283,8 +282,7 @@ private fun HistoryReminderCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isDone = reminder.status == ReminderStatus.DISMISSED.name ||
-        reminder.status == ReminderStatus.COMPLETED.name
+    val isDone = reminder.status != ReminderStatus.PENDING.name
 
     Card(
         modifier = modifier
@@ -313,12 +311,6 @@ private fun HistoryReminderCard(
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
-            )
-            Text(
-                text = FormatUtils.statusLabel(reminder.status),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.xs),
             )
         }
     }

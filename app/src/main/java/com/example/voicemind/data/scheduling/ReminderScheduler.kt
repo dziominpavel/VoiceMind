@@ -12,9 +12,7 @@ class ReminderScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     fun schedule(reminder: Reminder) {
-        if (reminder.status != ReminderStatus.SCHEDULED.name &&
-            reminder.status != ReminderStatus.SNOOZED.name
-        ) {
+        if (reminder.status != ReminderStatus.PENDING.name) {
             return
         }
         val triggerAt = reminder.fireAt

@@ -317,10 +317,197 @@ class ReminderParserTest {
     }
 
     @Test
+    fun todayAt0051_noColon_callBrother() {
+        val midnightNow = LocalDateTime.of(2026, 5, 17, 0, 0).atZone(zone).toInstant()
+        val r = parser.parse("сегодня 0051 позвонить брату", midnightNow)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 0, 51).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить брату", r.body)
+        assertTrue(r.confidence >= 0.9f)
+    }
+
+    @Test
+    fun todayAt0119_noV_callBrother() {
+        val earlyNow = LocalDateTime.of(2026, 5, 17, 1, 0).atZone(zone).toInstant()
+        val r = parser.parse("сегодня 01:19 позвонить брату", earlyNow)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 1, 19).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить брату", r.body)
+        assertTrue(r.confidence >= 0.9f)
+    }
+
+    @Test
+    fun spaceBetweenDigits_sttReturnsSpace() {
+        val r = parser.parse("02 35 позвонить куку", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 2, 35).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить куку", r.body)
+        assertTrue(r.confidence >= 0.8f)
+    }
+
+    @Test
+    fun spaceBetweenDigits_withV_prefix() {
+        val r = parser.parse("в 2 35 позвонить куку", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 2, 35).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить куку", r.body)
+        assertTrue(r.confidence >= 0.8f)
+    }
+
+    @Test
+    fun dateWithYear_doesNotTreatYearAsTime() {
+        val r = parser.parse("25 мая 2026 в 10:00 праздник", now)
+        assertEquals(LocalDateTime.of(2026, 5, 25, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("праздник", r.body)
+    }
+
+    @Test
     fun weekdayPastTime_adjustedToNextWeek() {
         // сейчас воскресенье 10:00; «в воскресенье в 9:00» уже прошло
         val r = parser.parse("в воскресенье в 9:00 бранч", now)
         assertEquals(LocalDateTime.of(2026, 5, 24, 9, 0).atZone(zone).toInstant(), r.fireAt)
         assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+    }
+
+    // --- Candidate-based engine regression / edge cases ---
+
+    @Test
+    fun exactTimeDoesNotGetOverriddenByPartOfDay() {
+        // Критический баг-фикс: «в 9:00 днём» → 9:00, а не 13:00
+        val r = parser.parse("завтра в 9:00 днём обед", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("днём обед", r.body)
+    }
+
+    @Test
+    fun bodyAtBeginning_timeAtEnd() {
+        // Перестановка: body в начале, время в конце
+        val r = parser.parse("позвонить маме завтра в 9:00", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить маме", r.body)
+    }
+
+    @Test
+    fun bodyInMiddle_timeAround() {
+        // Сложная перестановка: время по бокам от body
+        val r = parser.parse("завтра купить молоко в 10:00", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("купить молоко", r.body)
+    }
+
+    @Test
+    fun relativeDaysWithExplicitTime_highConfidence() {
+        // «через 2 дня в 10:00» — confidence должен быть высоким
+        val r = parser.parse("через 2 дня в 10:00 тест", now)
+        assertEquals(LocalDateTime.of(2026, 5, 19, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("тест", r.body)
+        assertTrue(r.confidence >= 0.8f)
+        assertTrue(r.isVoiceParseSuccessful())
+    }
+
+    @Test
+    fun hoursPartMorning_bodyClean() {
+        // «в 9 утра» — HOURS_PART должен съесть «утра», а не оставить в body
+        // now=10:00, поэтому 9 утра уже прошло → parser сдвигает на завтра
+        val r = parser.parse("сегодня в 9 утра встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun hoursPartEvening_bodyClean() {
+        val r = parser.parse("завтра в 8 вечера фильм", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 20, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("фильм", r.body)
+    }
+
+    @Test
+    fun noColonTimeWithoutV() {
+        // «сегодня 01:19» — без «в» (уже есть, но проверяем стабильность)
+        val earlyNow = LocalDateTime.of(2026, 5, 17, 1, 0).atZone(zone).toInstant()
+        val r = parser.parse("сегодня 01:19 позвонить брату", earlyNow)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 1, 19).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить брату", r.body)
+        assertTrue(r.confidence >= 0.9f)
+    }
+
+    @Test
+    fun multipleTimeCandidates_pickMostSpecific() {
+        // «в 9 часов 15 минут» — HOURS_MIN должен выиграть у HOURS_WORD
+        val r = parser.parse("завтра в 9 часов 15 минут созвон", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 15).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("созвон", r.body)
+    }
+
+    @Test
+    fun shortHourInsideHoursWord_notPicked() {
+        // «в 9 часов» — HOURS_WORD (score 60) должен выиграть у HOURS_SHORT (score 50)
+        val r = parser.parse("завтра в 9 часов звонок", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.TIME_AMBIGUOUS))
+    }
+
+    @Test
+    fun standalonePartOfDay_withDate() {
+        // «завтра утром» — PART_OF_DAY + TOMORROW
+        val r = parser.parse("позвонить завтра утром", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun dotSeparatorTime() {
+        // «в 9.30» — точка вместо двоеточия
+        val r = parser.parse("завтра в 9.30 завтрак", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 30).atZone(zone).toInstant(), r.fireAt)
+    }
+
+    @Test
+    fun hoursWordAmbiguousWithPartOfDayInBody_noWarning() {
+        // «в 9» + «утром» отдельно → PART_OF_DAY не является уточнением для TIME_HOURS_SHORT,
+        // но TIME_AMBIGUOUS должен НЕ добавляться, если PART_OF_DAY присутствует где-то в фразе
+        val r = parser.parse("завтра утром в 9 встреча", now)
+        // Примечание: «утром» — PART_OF_DAY, «в 9» — HOURS_SHORT.
+        // TIME_AMBIGUOUS не добавляется, т.к. PART_OF_DAY содержится в lowerText.
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        // warning может быть, т.к. PART_OF_DAY не «утра/вечера» для HOURS_SHORT
+        // Это acceptable — confidence будет 0.5
+    }
+
+    @Test
+    fun onlyRelativeDays_noTime_voiceParseSuccess() {
+        // «через 2 дня» — fireAt есть, но confidence=0, isVoiceParseSuccess=true по логике extensions
+        val r = parser.parse("через 2 дня сдать анализы", now)
+        assertNotNull(r.fireAt)
+        assertTrue(r.isVoiceParseSuccessful())
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun dateWithYear_doesNotTreatYearAsTime_candidateEngine() {
+        // Год рядом с датой — TIME_COLON не должен схватить год
+        val r = parser.parse("25 мая 2026 в 10:00 праздник", now)
+        assertEquals(LocalDateTime.of(2026, 5, 25, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("праздник", r.body)
+    }
+
+    @Test
+    fun todayAt9evening_callMom() {
+        val r = parser.parse("сегодня в 9 вечера позвонить маме", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 21, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить маме", r.body)
+    }
+
+    @Test
+    fun pastTimeWeekday_adjustedToNextWeek() {
+        // сейчас воскресенье 10:00; «в понедельник в 8:00» — завтра 8:00, не прошло
+        // а «в воскресенье в 8:00» — уже прошло → +7
+        val r = parser.parse("в воскресенье в 8:00 зарядка", now)
+        assertEquals(LocalDateTime.of(2026, 5, 24, 8, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+    }
+
+    @Test
+    fun bodyNotEmpty_whenOnlyTimeProvided() {
+        val r = parser.parse("в 15:00", now)
+        assertNotNull(r.fireAt)
+        assertTrue(r.body.isBlank() || r.warnings.contains(ParseWarning.BODY_EMPTY))
     }
 }

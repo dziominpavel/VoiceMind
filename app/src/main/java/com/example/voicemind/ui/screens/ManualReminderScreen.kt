@@ -2,10 +2,9 @@ package com.example.voicemind.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,10 +30,7 @@ import androidx.compose.ui.res.stringResource
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.ui.components.DateTimeField
-import com.example.voicemind.ui.components.PresetChips
-import com.example.voicemind.ui.components.TimePreset
 import com.example.voicemind.ui.components.WarningCard
-import com.example.voicemind.ui.components.toEpochMillis
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.viewmodel.ManualReminderDraft
 import java.time.Instant
@@ -74,7 +70,7 @@ fun ManualReminderScreen(
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(titleRes)) },
@@ -126,11 +122,6 @@ fun ManualReminderScreen(
                 label = fireAtLabel,
                 onDateClick = { showDatePicker = true },
                 onTimeClick = { showTimePicker = true },
-            )
-
-            PresetChips(
-                selected = null,
-                onSelected = { fireAtMillis = it.toEpochMillis(zone) },
             )
 
             OutlinedTextField(

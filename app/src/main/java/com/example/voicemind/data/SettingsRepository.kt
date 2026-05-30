@@ -5,8 +5,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "voice_mind_settings")
@@ -17,6 +19,7 @@ class SettingsRepository(private val context: Context) {
     private val useAlarmSoundKey = booleanPreferencesKey("use_alarm_sound")
     private val usePushNotificationKey = booleanPreferencesKey("use_push_notification")
     private val useVibrationKey = booleanPreferencesKey("use_vibration")
+    private val alarmRingtoneUriKey = stringPreferencesKey("alarm_ringtone_uri")
 
     val confirmBeforeSchedule: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[confirmBeforeScheduleKey] ?: true
@@ -32,6 +35,10 @@ class SettingsRepository(private val context: Context) {
 
     val useVibration: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[useVibrationKey] ?: true
+    }
+
+    val alarmRingtoneUri: Flow<String?> = context.settingsDataStore.data.map { prefs ->
+        prefs[alarmRingtoneUriKey]
     }
 
     suspend fun setConfirmBeforeSchedule(enabled: Boolean) {
@@ -55,6 +62,25 @@ class SettingsRepository(private val context: Context) {
     suspend fun setUseVibration(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[useVibrationKey] = enabled
+        }
+    }
+
+    suspend fun setAlarmRingtoneUri(uri: String?) {
+        context.settingsDataStore.edit { prefs ->
+            if (uri != null) {
+                prefs[alarmRingtoneUriKey] = uri
+            } else {
+                prefs.remove(alarmRingtoneUriKey)
+            }
+        }
+    }
+
+    suspend fun getDefaultDeliveryMode(): DeliveryMode {
+        return when {
+            useAlarmSound.first() -> DeliveryMode.ALARM
+            usePushNotification.first() -> DeliveryMode.NOTIFICATION
+            useVibration.first() -> DeliveryMode.VIBRATE_ONLY
+            else -> DeliveryMode.SILENT
         }
     }
 

@@ -3,6 +3,9 @@ package com.example.voicemind
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -35,7 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.voicemind.data.speech.SpeechRecognition
 import com.example.voicemind.ui.screens.ConfirmReminderScreen
@@ -44,8 +47,10 @@ import com.example.voicemind.ui.screens.ReminderDetailScreen
 import com.example.voicemind.ui.screens.ReminderListScreen
 import com.example.voicemind.ui.screens.SettingsScreen
 import com.example.voicemind.ui.theme.VoiceMindTheme
+import com.example.voicemind.ui.widget.WidgetUpdater
 import com.example.voicemind.util.ReminderPermissions
 import com.example.voicemind.viewmodel.VoiceMindViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel: VoiceMindViewModel by viewModels()
@@ -65,6 +70,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         viewModel.handleIntent(intent)
     }
+
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            WidgetUpdater.updateAll(applicationContext)
+        }
+    }
 }
 
 @Composable
@@ -83,7 +95,40 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val useAlarmSound by viewModel.useAlarmSound.collectAsState()
     val usePushNotification by viewModel.usePushNotification.collectAsState()
     val useVibration by viewModel.useVibration.collectAsState()
+    val alarmRingtoneUri by viewModel.alarmRingtoneUri.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
+
+    val ringtonePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableExtra(
+                    RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
+                    Uri::class.java,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            }
+            val defaultUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val isDefault = uri == null || uri == defaultUri
+            viewModel.setAlarmRingtoneUri(if (isDefault) null else uri.toString())
+        }
+    }
+
+    fun launchRingtonePicker() {
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, context.getString(R.string.settings_alarm_ringtone))
+            alarmRingtoneUri?.let { uri ->
+                putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(uri))
+            }
+        }
+        ringtonePickerLauncher.launch(intent)
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -169,7 +214,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
             modifier = Modifier.fillMaxSize(),
         ) { innerPadding ->
             NavigationSuiteScaffold(
@@ -213,10 +257,12 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         useAlarmSound = useAlarmSound,
                         usePushNotification = usePushNotification,
                         useVibration = useVibration,
+                        alarmRingtoneUri = alarmRingtoneUri,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                         onUseAlarmSoundChange = { viewModel.setUseAlarmSound(it) },
                         onUsePushNotificationChange = { viewModel.setUsePushNotification(it) },
                         onUseVibrationChange = { viewModel.setUseVibration(it) },
+                        onSelectRingtone = { launchRingtonePicker() },
                         onRequestNotificationPermission = {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         },
@@ -276,5 +322,9 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             }
         }
 
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
+        )
     }
 }

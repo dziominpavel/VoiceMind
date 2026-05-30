@@ -16,7 +16,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
@@ -36,10 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
@@ -61,8 +58,7 @@ fun ReminderDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSnoozeSheet by remember { mutableStateOf(false) }
 
-    val isScheduled = reminder.status == ReminderStatus.SCHEDULED.name ||
-        reminder.status == ReminderStatus.SNOOZED.name
+    val isScheduled = reminder.status == ReminderStatus.PENDING.name
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
