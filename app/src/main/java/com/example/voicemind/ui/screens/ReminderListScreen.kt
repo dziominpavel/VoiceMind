@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
@@ -269,7 +270,9 @@ private fun UpcomingReminderCard(
                 Spacer(modifier = Modifier.height(Spacing.xxs))
                 Text(
                     text = reminder.body,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -304,7 +307,9 @@ private fun HistoryReminderCard(
             Spacer(modifier = Modifier.height(Spacing.xxs))
             Text(
                 text = reminder.body,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
                 textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                 color = if (isDone) {
                     MaterialTheme.colorScheme.onSurfaceVariant

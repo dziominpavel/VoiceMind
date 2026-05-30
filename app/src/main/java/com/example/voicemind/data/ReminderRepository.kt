@@ -44,7 +44,7 @@ class ReminderRepository(context: Context) {
 
     suspend fun completeReminder(id: Long) = withContext(Dispatchers.IO) {
         scheduler.cancel(id)
-        dao.updateStatus(id, ReminderStatus.DONE.name)
+        dao.complete(id, System.currentTimeMillis())
         WidgetUpdater.updateAll(appContext)
     }
 

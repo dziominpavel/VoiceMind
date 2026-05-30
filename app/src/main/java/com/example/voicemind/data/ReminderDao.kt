@@ -56,6 +56,14 @@ interface ReminderDao {
 
     @Query(
         """
+        UPDATE reminders SET status = 'DONE', fireAt = :fireAt
+        WHERE id = :id
+        """,
+    )
+    suspend fun complete(id: Long, fireAt: Long)
+
+    @Query(
+        """
         UPDATE reminders SET status = 'PENDING', fireAt = :fireAt, snoozeCount = snoozeCount + 1
         WHERE id = :id
         """,
