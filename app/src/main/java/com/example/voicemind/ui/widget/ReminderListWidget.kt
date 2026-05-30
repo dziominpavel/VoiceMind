@@ -48,8 +48,9 @@ class ReminderListWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(
         setOf(
-            DpSize(250.dp, 160.dp),
-            DpSize(320.dp, 220.dp),
+            DpSize(250.dp, 40.dp),
+            DpSize(320.dp, 40.dp),
+            DpSize(400.dp, 56.dp),
         )
     )
 
@@ -62,8 +63,8 @@ class ReminderListWidget : GlanceAppWidget() {
         provideContent {
             val size = LocalSize.current
             val maxItems = when {
-                size.height >= 200.dp -> 4
-                size.height >= 160.dp -> 3
+                size.height >= 56.dp -> 4
+                size.height >= 40.dp -> 3
                 else -> 2
             }
 
@@ -84,7 +85,7 @@ class ReminderListWidget : GlanceAppWidget() {
                     Row(
                         modifier = GlanceModifier
                             .fillMaxSize()
-                            .padding(12.dp),
+                            .padding(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
@@ -97,7 +98,7 @@ class ReminderListWidget : GlanceAppWidget() {
                                 items.forEach { reminder ->
                                     ReminderItem(context, reminder = reminder)
                                     if (reminder != items.last()) {
-                                        Spacer(modifier = GlanceModifier.height(8.dp))
+                                        Spacer(modifier = GlanceModifier.height(2.dp))
                                     }
                                 }
                             }
@@ -136,7 +137,7 @@ class ReminderListWidget : GlanceAppWidget() {
         Row(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -197,15 +198,14 @@ class ReminderListWidget : GlanceAppWidget() {
 
         Row(
             modifier = GlanceModifier
-                .fillMaxWidth()
-                .padding(vertical = 2.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = reminder.body,
                 style = TextStyle(
                     color = textColor,
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
                 ),
                 maxLines = 1,
@@ -226,7 +226,7 @@ class ReminderListWidget : GlanceAppWidget() {
                 text = FormatUtils.formatRelativeFireAt(reminder.fireAt),
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                 ),
                 maxLines = 1,
             )
