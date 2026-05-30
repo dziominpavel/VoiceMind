@@ -96,6 +96,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val usePushNotification by viewModel.usePushNotification.collectAsState()
     val useVibration by viewModel.useVibration.collectAsState()
     val alarmRingtoneUri by viewModel.alarmRingtoneUri.collectAsState()
+    val dismissBehavior by viewModel.dismissBehavior.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
@@ -258,6 +259,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         usePushNotification = usePushNotification,
                         useVibration = useVibration,
                         alarmRingtoneUri = alarmRingtoneUri,
+                        dismissBehavior = dismissBehavior,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                         onUseAlarmSoundChange = { viewModel.setUseAlarmSound(it) },
                         onUsePushNotificationChange = { viewModel.setUsePushNotification(it) },
@@ -266,6 +268,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         onRequestNotificationPermission = {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         },
+                        onDismissBehaviorChange = { viewModel.setDismissBehavior(it) },
                     )
                 }
             }

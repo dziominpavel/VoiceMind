@@ -14,6 +14,7 @@ object AlarmSoundPlayer {
     private var ringtone: Ringtone? = null
 
     fun play(context: Context, customUriString: String? = null) {
+        stop(context)
         val alarmUri = customUriString?.let { Uri.parse(it) }
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)

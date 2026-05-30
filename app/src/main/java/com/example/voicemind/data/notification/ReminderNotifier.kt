@@ -43,6 +43,7 @@ class ReminderNotifier(private val context: Context) {
                     ),
             )
             .setContentIntent(contentIntent)
+            .setDeleteIntent(ReminderIntents.actionIntent(context, reminder.id, ReminderIntents.ACTION_DISMISS))
             .setAutoCancel(true)
             .addAction(
                 R.drawable.ic_notification,
@@ -63,6 +64,9 @@ class ReminderNotifier(private val context: Context) {
         if (deliveryMode == DeliveryMode.ALARM) {
             builder.setCategory(NotificationCompat.CATEGORY_ALARM)
             builder.setPriority(NotificationCompat.PRIORITY_MAX)
+            builder.setSilent(true)
+            builder.setDefaults(0)
+            builder.setSound(null)
         } else if (deliveryMode == DeliveryMode.NOTIFICATION) {
             builder.setPriority(NotificationCompat.PRIORITY_HIGH)
         } else {

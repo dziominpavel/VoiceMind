@@ -20,6 +20,7 @@ class SettingsRepository(private val context: Context) {
     private val usePushNotificationKey = booleanPreferencesKey("use_push_notification")
     private val useVibrationKey = booleanPreferencesKey("use_vibration")
     private val alarmRingtoneUriKey = stringPreferencesKey("alarm_ringtone_uri")
+    private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
 
     val confirmBeforeSchedule: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[confirmBeforeScheduleKey] ?: true
@@ -39,6 +40,12 @@ class SettingsRepository(private val context: Context) {
 
     val alarmRingtoneUri: Flow<String?> = context.settingsDataStore.data.map { prefs ->
         prefs[alarmRingtoneUriKey]
+    }
+
+    val dismissBehavior: Flow<DismissBehavior> = context.settingsDataStore.data.map { prefs ->
+        prefs[dismissBehaviorKey]?.let {
+            runCatching { DismissBehavior.valueOf(it) }.getOrNull()
+        } ?: DismissBehavior.MARK_DONE
     }
 
     suspend fun setConfirmBeforeSchedule(enabled: Boolean) {
@@ -72,6 +79,12 @@ class SettingsRepository(private val context: Context) {
             } else {
                 prefs.remove(alarmRingtoneUriKey)
             }
+        }
+    }
+
+    suspend fun setDismissBehavior(behavior: DismissBehavior) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[dismissBehaviorKey] = behavior.name
         }
     }
 

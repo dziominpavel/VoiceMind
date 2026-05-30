@@ -80,6 +80,13 @@ class ReminderRepository(context: Context) {
         WidgetUpdater.updateAll(appContext)
     }
 
+    suspend fun fireOverdue() = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        dao.getOverduePending(now).forEach { reminder ->
+            markFiredAndShow(reminder.id)
+        }
+    }
+
     suspend fun rescheduleAll() = withContext(Dispatchers.IO) {
         scheduler.rescheduleAll(dao.getAllScheduled())
     }

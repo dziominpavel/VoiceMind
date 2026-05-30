@@ -59,6 +59,9 @@
     <string name="settings_use_vibration_hint">Вибрировать при срабатывании</string>
     <string name="settings_confirm_before_schedule">Спрашивать подтверждение после голосового ввода</string>
     <string name="settings_confirm_before_schedule_hint">Показывать экран проверки перед сохранением</string>
+    <string name="settings_dismiss_behavior_title">При смахивании напоминания</string>
+    <string name="settings_dismiss_behavior_done">Пометить выполненным</string>
+    <string name="settings_dismiss_behavior_snooze">Отложить на 15 минут</string>
     <string name="settings_test_hint">Для проверки создайте напоминание на 2–3 минуты вперёд и сверните приложение.</string>
     <string name="settings_version">Версия %1$s · %2$s</string>
     <string name="settings_about_title">О приложении</string>
