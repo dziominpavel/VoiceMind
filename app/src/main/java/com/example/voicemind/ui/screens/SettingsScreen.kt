@@ -32,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,12 +62,14 @@ fun SettingsScreen(
     usePushNotification: Boolean,
     useVibration: Boolean,
     alarmRingtoneUri: String?,
+    alarmVolume: Int,
     dismissBehavior: DismissBehavior,
     onConfirmBeforeScheduleChange: (Boolean) -> Unit,
     onUseAlarmSoundChange: (Boolean) -> Unit,
     onUsePushNotificationChange: (Boolean) -> Unit,
     onUseVibrationChange: (Boolean) -> Unit,
     onSelectRingtone: () -> Unit,
+    onAlarmVolumeChange: (Int) -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onDismissBehaviorChange: (DismissBehavior) -> Unit,
     modifier: Modifier = Modifier,
@@ -99,6 +102,11 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_alarm_ringtone),
                         uri = alarmRingtoneUri,
                         onClick = onSelectRingtone,
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    AlarmVolumeSlider(
+                        volume = alarmVolume,
+                        onVolumeChange = onAlarmVolumeChange,
                     )
                 }
             }
@@ -411,6 +419,43 @@ private fun RadioOptionRow(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
         )
+    }
+}
+
+@Composable
+private fun AlarmVolumeSlider(
+    volume: Int,
+    onVolumeChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.settings_alarm_volume),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(R.string.settings_alarm_volume_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "${volume}%",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(end = Spacing.sm),
+            )
+            Slider(
+                value = volume.toFloat(),
+                onValueChange = { onVolumeChange(it.toInt()) },
+                valueRange = 0f..100f,
+                steps = 99,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

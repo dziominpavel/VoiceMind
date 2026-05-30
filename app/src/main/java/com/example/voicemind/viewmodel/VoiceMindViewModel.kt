@@ -15,6 +15,7 @@ import com.example.voicemind.data.parse.ReminderParser
 import com.example.voicemind.data.parse.isVoiceParseSuccessful
 import com.example.voicemind.data.speech.SpeechInputController
 import com.example.voicemind.ui.widget.WidgetActions
+import com.example.voicemind.ui.widget.WidgetUpdater
 import com.example.voicemind.util.ReminderPermissions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -80,6 +81,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     val alarmRingtoneUri = settings.alarmRingtoneUri
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val alarmVolume = settings.alarmVolume
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 100)
 
     val dismissBehavior = settings.dismissBehavior
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DismissBehavior.MARK_DONE)
@@ -164,6 +168,12 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun setAlarmRingtoneUri(uri: String?) {
         viewModelScope.launch {
             settings.setAlarmRingtoneUri(uri)
+        }
+    }
+
+    fun setAlarmVolume(volume: Int) {
+        viewModelScope.launch {
+            settings.setAlarmVolume(volume)
         }
     }
 
@@ -265,12 +275,22 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun cancelReminder(id: Long) {
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.cancelReminder(id)
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
         }
     }
 
     fun completeReminder(id: Long) {
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.completeReminder(id)
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
         }
     }
 
@@ -292,6 +312,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.deleteReminder(id)
             _detailReminder.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
         }
     }
 
@@ -307,6 +332,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
             )
             _detailReminder.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
         }
     }
 
@@ -326,6 +356,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
             )
             _detailReminder.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
         }
     }
 
@@ -413,6 +448,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
             onSuccess()
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
         }
     }
 

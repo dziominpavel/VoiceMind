@@ -53,6 +53,8 @@
     <string name="settings_use_alarm_sound_hint">Громкий звонок при срабатывании</string>
     <string name="settings_alarm_ringtone">Мелодия будильника</string>
     <string name="settings_alarm_ringtone_default">По умолчанию</string>
+    <string name="settings_alarm_volume">Громкость будильника</string>
+    <string name="settings_alarm_volume_hint">Временно повышает системную громкость только при срабатывании</string>
     <string name="settings_use_push_notification">Пуш-уведомление</string>
     <string name="settings_use_push_notification_hint">Показывать уведомление на экране</string>
     <string name="settings_use_vibration">Вибрация</string>

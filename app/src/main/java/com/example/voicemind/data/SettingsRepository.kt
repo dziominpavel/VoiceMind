@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ class SettingsRepository(private val context: Context) {
     private val usePushNotificationKey = booleanPreferencesKey("use_push_notification")
     private val useVibrationKey = booleanPreferencesKey("use_vibration")
     private val alarmRingtoneUriKey = stringPreferencesKey("alarm_ringtone_uri")
+    private val alarmVolumeKey = intPreferencesKey("alarm_volume")
     private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
 
     val confirmBeforeSchedule: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -40,6 +42,10 @@ class SettingsRepository(private val context: Context) {
 
     val alarmRingtoneUri: Flow<String?> = context.settingsDataStore.data.map { prefs ->
         prefs[alarmRingtoneUriKey]
+    }
+
+    val alarmVolume: Flow<Int> = context.settingsDataStore.data.map { prefs ->
+        prefs[alarmVolumeKey] ?: 100
     }
 
     val dismissBehavior: Flow<DismissBehavior> = context.settingsDataStore.data.map { prefs ->
@@ -79,6 +85,12 @@ class SettingsRepository(private val context: Context) {
             } else {
                 prefs.remove(alarmRingtoneUriKey)
             }
+        }
+    }
+
+    suspend fun setAlarmVolume(volume: Int) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[alarmVolumeKey] = volume.coerceIn(0, 100)
         }
     }
 

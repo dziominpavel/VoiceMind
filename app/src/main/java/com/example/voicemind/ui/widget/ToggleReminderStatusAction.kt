@@ -34,6 +34,11 @@ class ToggleReminderStatusAction : ActionCallback {
             )
         }
         AlarmSoundPlayer.stop(context)
+        try {
+            WidgetUpdater.updateAll(context)
+        } catch (e: Exception) {
+            // ignore widget update errors
+        }
     }
 
     companion object {

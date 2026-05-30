@@ -96,6 +96,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val usePushNotification by viewModel.usePushNotification.collectAsState()
     val useVibration by viewModel.useVibration.collectAsState()
     val alarmRingtoneUri by viewModel.alarmRingtoneUri.collectAsState()
+    val alarmVolume by viewModel.alarmVolume.collectAsState()
     val dismissBehavior by viewModel.dismissBehavior.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
 
@@ -259,8 +260,10 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         usePushNotification = usePushNotification,
                         useVibration = useVibration,
                         alarmRingtoneUri = alarmRingtoneUri,
+                        alarmVolume = alarmVolume,
                         dismissBehavior = dismissBehavior,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
+                        onAlarmVolumeChange = { viewModel.setAlarmVolume(it) },
                         onUseAlarmSoundChange = { viewModel.setUseAlarmSound(it) },
                         onUsePushNotificationChange = { viewModel.setUsePushNotification(it) },
                         onUseVibrationChange = { viewModel.setUseVibration(it) },
