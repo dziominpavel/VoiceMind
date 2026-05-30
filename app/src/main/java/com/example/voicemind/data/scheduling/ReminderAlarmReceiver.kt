@@ -30,8 +30,10 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
                 val deliveryMode = DeliveryMode.valueOf(reminder.deliveryMode)
                 if (deliveryMode == DeliveryMode.ALARM) {
-                    val customUri = SettingsRepository.getInstance(context).alarmRingtoneUri.first()
-                    AlarmSoundPlayer.play(context, customUri)
+                    val settings = SettingsRepository.getInstance(context)
+                    val customUri = settings.alarmRingtoneUri.first()
+                    val volume = settings.alarmVolume.first()
+                    AlarmSoundPlayer.play(context, customUri, volume)
                 }
 
                 repo.markFiredAndShow(reminderId)
