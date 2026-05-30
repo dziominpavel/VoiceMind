@@ -1,10 +1,8 @@
 package com.example.voicemind.data
 
 enum class ReminderStatus {
-    SCHEDULED,
-    FIRED,
-    DISMISSED,
+    PENDING,
+    TRIGGERED,
+    DONE,
     CANCELLED,
-    SNOOZED,
-    COMPLETED,
 }

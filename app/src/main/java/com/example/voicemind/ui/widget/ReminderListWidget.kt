@@ -2,21 +2,25 @@ package com.example.voicemind.ui.widget
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
-import androidx.glance.LocalSize
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.lazy.LazyColumn
-import androidx.glance.appwidget.lazy.items
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.glance.ColorFilter
+import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -28,20 +32,14 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.GlanceTheme
-import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
-import androidx.glance.text.TextStyle
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.sp
-import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.action.actionParametersOf
 import androidx.glance.text.TextDecoration
+import androidx.glance.text.TextStyle
 import com.example.voicemind.MainActivity
 import com.example.voicemind.R
-import com.example.voicemind.ui.widget.WidgetActions
 import com.example.voicemind.data.AppDatabase
+import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderStatus
 
@@ -49,40 +47,65 @@ class ReminderListWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(
         setOf(
-            DpSize(250.dp, 40.dp),
-            DpSize(250.dp, 180.dp),
-            DpSize(320.dp, 320.dp),
+            DpSize(250.dp, 120.dp),
+            DpSize(320.dp, 200.dp),
         )
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val dao = AppDatabase.getInstance(context).reminderDao()
-        val upcoming = dao.getAllScheduled().take(5)
-        val history = if (upcoming.size < 5) {
-            dao.getRecentHistory(5 - upcoming.size)
-        } else emptyList()
-        val allReminders = upcoming + history
+        val cutoff = System.currentTimeMillis() - 24 * 60 * 60_000L
+        val displayed = dao.getWidgetReminders(limit = 5, cutoff = cutoff)
 
         provideContent {
-            val maxItems = when {
-                LocalSize.current.width >= 320.dp && LocalSize.current.height >= 320.dp -> 5
-                LocalSize.current.height >= 180.dp -> 3
-                else -> 1
-            }
-            val reminders = allReminders.take(maxItems)
-
             GlanceTheme(colors = VoiceMindWidgetTheme.colors) {
-                Column(
-                    modifier = GlanceModifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                ) {
-                    Header(context)
-                    Spacer(modifier = GlanceModifier.height(8.dp))
-                    if (reminders.isEmpty()) {
-                        EmptyState(context)
-                    } else {
-                        ReminderList(context, reminders)
+                if (displayed.isEmpty()) {
+                    EmptyState(context)
+                } else {
+                    Row(
+                        modifier = GlanceModifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = GlanceModifier.defaultWeight(),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Column(
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                displayed.forEach { reminder ->
+                                    ReminderItem(context, reminder = reminder)
+                                    if (reminder != displayed.last()) {
+                                        Spacer(modifier = GlanceModifier.height(8.dp))
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = GlanceModifier.width(12.dp))
+                        Box(
+                            modifier = GlanceModifier
+                                .size(48.dp)
+                                .background(GlanceTheme.colors.primary)
+                                .cornerRadius(12.dp)
+                                .clickable(
+                                    actionStartActivity(
+                                        Intent(context, MainActivity::class.java).apply {
+                                            action = WidgetActions.ACTION_START_VOICE
+                                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                                        }
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Image(
+                                provider = ImageProvider(R.drawable.ic_mic),
+                                contentDescription = context.getString(R.string.home_mic_start),
+                                modifier = GlanceModifier.size(24.dp),
+                                colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
+                            )
+                        }
                     }
                 }
             }
@@ -90,24 +113,40 @@ class ReminderListWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun Header(context: Context) {
+    private fun EmptyState(context: Context) {
         Row(
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = context.getString(R.string.widget_list_title),
-                style = TextStyle(
-                    fontWeight = FontWeight.Medium,
-                    color = GlanceTheme.colors.onBackground,
-                ),
-                modifier = GlanceModifier.defaultWeight(),
-            )
-            Image(
-                provider = ImageProvider(R.drawable.ic_mic),
-                contentDescription = context.getString(R.string.home_mic_start),
+            Box(
                 modifier = GlanceModifier
-                    .size(28.dp)
+                    .defaultWeight()
+                    .clickable(
+                        actionStartActivity(
+                            Intent(context, MainActivity::class.java).apply {
+                                action = WidgetActions.ACTION_OPEN_LIST
+                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        )
+                    ),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    text = context.getString(R.string.list_empty),
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    ),
+                )
+            }
+            Spacer(modifier = GlanceModifier.width(12.dp))
+            Box(
+                modifier = GlanceModifier
+                    .size(48.dp)
+                    .background(GlanceTheme.colors.primary)
+                    .cornerRadius(12.dp)
                     .clickable(
                         actionStartActivity(
                             Intent(context, MainActivity::class.java).apply {
@@ -116,41 +155,21 @@ class ReminderListWidget : GlanceAppWidget() {
                             }
                         )
                     ),
-                colorFilter = ColorFilter.tint(GlanceTheme.colors.primary),
-            )
-        }
-    }
-
-    @Composable
-    private fun EmptyState(context: Context) {
-        Box(
-            modifier = GlanceModifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = context.getString(R.string.list_empty),
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                ),
-            )
-        }
-    }
-
-    @Composable
-    private fun ReminderList(context: Context, reminders: List<Reminder>) {
-        LazyColumn {
-            items(reminders) { reminder ->
-                ReminderItem(context, reminder = reminder)
-                Spacer(modifier = GlanceModifier.height(6.dp))
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    provider = ImageProvider(R.drawable.ic_mic),
+                    contentDescription = context.getString(R.string.home_mic_start),
+                    modifier = GlanceModifier.size(24.dp),
+                    colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
+                )
             }
         }
     }
 
     @Composable
     private fun ReminderItem(context: Context, reminder: Reminder) {
-        val isDone = reminder.status != ReminderStatus.SCHEDULED.name &&
-            reminder.status != ReminderStatus.SNOOZED.name
+        val isDone = reminder.status != ReminderStatus.PENDING.name
         val textColor = if (isDone) {
             GlanceTheme.colors.onSurfaceVariant
         } else {
@@ -160,7 +179,7 @@ class ReminderListWidget : GlanceAppWidget() {
         Row(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -171,16 +190,35 @@ class ReminderListWidget : GlanceAppWidget() {
                     textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None,
                 ),
                 maxLines = 1,
-                modifier = GlanceModifier.defaultWeight(),
+                modifier = GlanceModifier
+                    .defaultWeight()
+                    .clickable(
+                        actionStartActivity(
+                            Intent(context, MainActivity::class.java).apply {
+                                action = WidgetActions.ACTION_OPEN_REMINDER
+                                putExtra(WidgetActions.EXTRA_REMINDER_ID, reminder.id)
+                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        )
+                    ),
             )
-            Spacer(modifier = GlanceModifier.width(8.dp))
+            Spacer(modifier = GlanceModifier.width(6.dp))
+            Text(
+                text = FormatUtils.formatRelativeFireAt(reminder.fireAt),
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurfaceVariant,
+                    fontSize = 11.sp,
+                ),
+                maxLines = 1,
+            )
+            Spacer(modifier = GlanceModifier.width(6.dp))
             Image(
                 provider = ImageProvider(
                     if (isDone) R.drawable.ic_checkbox_checked else R.drawable.ic_checkbox_unchecked
                 ),
                 contentDescription = "Toggle done",
                 modifier = GlanceModifier
-                    .size(20.dp)
+                    .size(22.dp)
                     .clickable(
                         actionRunCallback<ToggleReminderStatusAction>(
                             actionParametersOf(

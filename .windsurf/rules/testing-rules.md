@@ -29,5 +29,27 @@ alwaysApply: false
 - Не использовать `Thread.sleep()` в unit-тестах.
 
 ## Запуск
-- `./gradlew test` — unit.
-- `./gradlew connectedAndroidTest` — instrumented (эмулятор/девайс).
+
+### Unit-тесты (Android)
+Проект VoiceMind — Android Gradle. Unit-тесты лежат в `:app`, task — `testDebugUnitTest`.
+
+**Windows (PowerShell / Cascade):**
+```powershell
+cmd /c "cd /d C:\projects\VoiceMind && gradlew.bat :app:testDebugUnitTest --no-daemon"
+# Фильтр по классу:
+cmd /c "cd /d C:\projects\VoiceMind && gradlew.bat :app:testDebugUnitTest --tests \"com.example.voicemind.data.parse.ReminderParserTest\" --no-daemon"
+```
+
+**macOS / Linux:**
+```bash
+./gradlew :app:testDebugUnitTest --no-daemon
+./gradlew :app:testDebugUnitTest --tests "com.example.voicemind.data.parse.ReminderParserTest" --no-daemon
+```
+
+**Важно:**
+- Всегда использовать **абсолютный путь** к `gradlew.bat` или `cmd /c "cd /d ..."` — иначе PowerShell не находит батник.
+- `--no-daemon` — в окружении Cascade daemon падает по I/O таймауту.
+- Не использовать `\./gradlew.bat` напрямую в PowerShell — распознаётся как термин не найден.
+
+### Instrumented
+- `./gradlew connectedAndroidTest` — эмулятор/девайс.

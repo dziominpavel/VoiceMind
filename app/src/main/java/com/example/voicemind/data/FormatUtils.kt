@@ -35,12 +35,10 @@ object FormatUtils {
     }
 
     fun statusLabel(status: String): String = when (status) {
-        "SCHEDULED" -> "Запланировано"
-        "SNOOZED" -> "Отложено"
-        "FIRED" -> "Сработало"
-        "DISMISSED" -> "Выполнено"
+        "PENDING" -> "Ожидает"
+        "TRIGGERED" -> "Сработало"
+        "DONE" -> "Выполнено"
         "CANCELLED" -> "Отменено"
-        "COMPLETED" -> "Выполнено"
         else -> status
     }
 }

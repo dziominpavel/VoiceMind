@@ -1,8 +1,13 @@
 package com.example.voicemind
 
 import android.app.Application
+import android.content.Intent
+import android.content.IntentFilter
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.notification.NotificationChannels
+import com.example.voicemind.ui.widget.ScreenOnReceiver
+import com.example.voicemind.ui.widget.WidgetRefreshWorker
+import com.example.voicemind.ui.widget.WidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,6 +22,9 @@ class VoiceMindApplication : Application() {
         NotificationChannels.createAll(this)
         appScope.launch {
             ReminderRepository.getInstance(this@VoiceMindApplication).rescheduleAll()
+            WidgetUpdater.updateAll(this@VoiceMindApplication)
         }
+        WidgetRefreshWorker.schedule(this)
+        registerReceiver(ScreenOnReceiver(), IntentFilter(Intent.ACTION_SCREEN_ON))
     }
 }

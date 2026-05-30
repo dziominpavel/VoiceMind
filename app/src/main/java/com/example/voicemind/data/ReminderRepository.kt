@@ -38,13 +38,13 @@ class ReminderRepository(context: Context) {
 
     suspend fun dismissReminder(id: Long) = withContext(Dispatchers.IO) {
         scheduler.cancel(id)
-        dao.updateStatus(id, ReminderStatus.DISMISSED.name)
+        dao.updateStatus(id, ReminderStatus.DONE.name)
         WidgetUpdater.updateAll(appContext)
     }
 
     suspend fun completeReminder(id: Long) = withContext(Dispatchers.IO) {
         scheduler.cancel(id)
-        dao.updateStatus(id, ReminderStatus.COMPLETED.name)
+        dao.updateStatus(id, ReminderStatus.DONE.name)
         WidgetUpdater.updateAll(appContext)
     }
 
@@ -58,10 +58,10 @@ class ReminderRepository(context: Context) {
         val reminder = dao.getById(id) ?: return@withContext
         val newFireAt = System.currentTimeMillis() + delayMinutes * 60_000L
         scheduler.cancel(id)
-        dao.snooze(id, ReminderStatus.SCHEDULED.name, newFireAt)
+        dao.snooze(id, newFireAt)
         val updated = reminder.copy(
             fireAt = newFireAt,
-            status = ReminderStatus.SCHEDULED.name,
+            status = ReminderStatus.PENDING.name,
             snoozeCount = reminder.snoozeCount + 1,
         )
         scheduler.schedule(updated)
@@ -70,14 +70,12 @@ class ReminderRepository(context: Context) {
 
     suspend fun markFiredAndShow(id: Long) = withContext(Dispatchers.IO) {
         val reminder = dao.getById(id) ?: return@withContext
-        if (reminder.status != ReminderStatus.SCHEDULED.name &&
-            reminder.status != ReminderStatus.SNOOZED.name
-        ) {
+        if (reminder.status != ReminderStatus.PENDING.name) {
             return@withContext
         }
-        dao.updateStatus(id, ReminderStatus.FIRED.name)
+        dao.updateStatus(id, ReminderStatus.TRIGGERED.name)
         ReminderNotifier(appContext).show(
-            reminder.copy(status = ReminderStatus.FIRED.name),
+            reminder.copy(status = ReminderStatus.TRIGGERED.name),
         )
         WidgetUpdater.updateAll(appContext)
     }
@@ -99,7 +97,7 @@ class ReminderRepository(context: Context) {
         dao.update(updated)
         scheduler.cancel(reminder.id)
         if (
-            (updated.status == ReminderStatus.SCHEDULED.name || updated.status == ReminderStatus.SNOOZED.name) &&
+            updated.status == ReminderStatus.PENDING.name &&
             updated.fireAt > System.currentTimeMillis()
         ) {
             scheduler.schedule(updated)

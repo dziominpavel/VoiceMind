@@ -7,26 +7,21 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.example.voicemind.MainActivity
 import com.example.voicemind.R
+import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
-import com.example.voicemind.data.SettingsRepository
 import com.example.voicemind.data.scheduling.ReminderIntents
-import kotlinx.coroutines.flow.first
 
 class ReminderNotifier(private val context: Context) {
 
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    private val settings = SettingsRepository.getInstance(context)
 
-    suspend fun show(reminder: Reminder) {
+    fun show(reminder: Reminder) {
         NotificationChannels.createAll(context)
 
-        val useAlarmSound = settings.useAlarmSound.first()
-        val usePush = settings.usePushNotification.first()
-        val useVibration = settings.useVibration.first()
-
-        val channelId = NotificationChannels.channelId()
+        val deliveryMode = DeliveryMode.valueOf(reminder.deliveryMode)
+        val channelId = NotificationChannels.channelId(deliveryMode)
 
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -65,35 +60,13 @@ class ReminderNotifier(private val context: Context) {
                 ReminderIntents.actionIntent(context, reminder.id, ReminderIntents.ACTION_CANCEL),
             )
 
-        when {
-            useAlarmSound && useVibration -> {
-                builder.setCategory(NotificationCompat.CATEGORY_ALARM)
-                builder.setPriority(NotificationCompat.PRIORITY_MAX)
-                builder.setVibrate(longArrayOf(0, 500, 200, 500))
-            }
-            useAlarmSound -> {
-                builder.setCategory(NotificationCompat.CATEGORY_ALARM)
-                builder.setPriority(NotificationCompat.PRIORITY_MAX)
-                builder.setVibrate(null)
-            }
-            usePush && useVibration -> {
-                builder.setPriority(NotificationCompat.PRIORITY_HIGH)
-                builder.setVibrate(longArrayOf(0, 300, 150, 300))
-            }
-            usePush -> {
-                builder.setPriority(NotificationCompat.PRIORITY_HIGH)
-                builder.setVibrate(null)
-            }
-            useVibration -> {
-                builder.setSound(null)
-                builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                builder.setVibrate(longArrayOf(0, 300, 150, 300))
-            }
-            else -> {
-                builder.setSound(null)
-                builder.setPriority(NotificationCompat.PRIORITY_LOW)
-                builder.setVibrate(null)
-            }
+        if (deliveryMode == DeliveryMode.ALARM) {
+            builder.setCategory(NotificationCompat.CATEGORY_ALARM)
+            builder.setPriority(NotificationCompat.PRIORITY_MAX)
+        } else if (deliveryMode == DeliveryMode.NOTIFICATION) {
+            builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+        } else {
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }
 
         notificationManager.notify(reminder.id.notificationId(), builder.build())

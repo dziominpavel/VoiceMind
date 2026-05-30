@@ -6,6 +6,7 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.ReminderStatus
+import com.example.voicemind.data.notification.AlarmSoundPlayer
 
 class ToggleReminderStatusAction : ActionCallback {
 
@@ -19,23 +20,20 @@ class ToggleReminderStatusAction : ActionCallback {
         val repo = ReminderRepository.getInstance(context)
         val reminder = repo.getById(id) ?: return
 
-        if (
-            currentStatus == ReminderStatus.SCHEDULED.name ||
-            currentStatus == ReminderStatus.SNOOZED.name
-        ) {
-            repo.dismissReminder(id)
+        if (currentStatus == ReminderStatus.PENDING.name) {
+            repo.completeReminder(id)
         } else {
             val now = System.currentTimeMillis()
             val newFireAt = (reminder.fireAt.takeIf { it > now } ?: (now + 3_600_000L))
             repo.updateAndSchedule(
                 reminder.copy(
                     fireAt = newFireAt,
-                    status = ReminderStatus.SCHEDULED.name,
+                    status = ReminderStatus.PENDING.name,
                     snoozeCount = 0,
                 ),
             )
         }
-        WidgetUpdater.updateAll(context)
+        AlarmSoundPlayer.stop(context)
     }
 
     companion object {

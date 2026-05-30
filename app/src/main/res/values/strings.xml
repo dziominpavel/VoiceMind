@@ -2,7 +2,6 @@
     <string name="app_name">VoiceMind</string>
     <string name="widget_mic_label">VoiceMind Микрофон</string>
     <string name="widget_list_label">VoiceMind Напоминания</string>
-    <string name="widget_list_title">Ближайшие</string>
     <string name="tab_list">Список</string>
     <string name="tab_settings">Настройки</string>
 
@@ -52,6 +51,8 @@
     <string name="settings_notifications_title">Оповещения</string>
     <string name="settings_use_alarm_sound">Звук будильника</string>
     <string name="settings_use_alarm_sound_hint">Громкий звонок при срабатывании</string>
+    <string name="settings_alarm_ringtone">Мелодия будильника</string>
+    <string name="settings_alarm_ringtone_default">По умолчанию</string>
     <string name="settings_use_push_notification">Пуш-уведомление</string>
     <string name="settings_use_push_notification_hint">Показывать уведомление на экране</string>
     <string name="settings_use_vibration">Вибрация</string>
@@ -62,6 +63,14 @@
     <string name="settings_version">Версия %1$s · %2$s</string>
     <string name="settings_about_title">О приложении</string>
     <string name="settings_request_notifications">Разрешить уведомления</string>
+
+    <string name="settings_developer_title">О разработчике</string>
+    <string name="settings_developer_name">Dziomin Pavel</string>
+    <string name="settings_developer_link">github.com/dziominpavel</string>
+
+    <string name="settings_faq_title">Вопрос–ответ</string>
+    <string name="faq_phrases_question">Какие фразы распознаются на 100%?</string>
+    <string name="faq_phrases_answer">Например: «завтра в 9:00 позвонить соседу», «через час купить молоко», «в понедельник в 18:30 тренировка», «сегодня в 21:30 вечерняя прогулка», «через 30 минут выключить плиту», «25 мая в 14:00 стоматолог».</string>
 
     <string name="list_cancel">Отменить</string>
 
@@ -90,11 +99,6 @@
     <string name="confirm_save">Сохранить</string>
     <string name="confirm_ok">OK</string>
     <string name="confirm_cancel">Отмена</string>
-
-    <string name="preset_plus_15_min">+15 мин</string>
-    <string name="preset_plus_1_hour">+1 ч</string>
-    <string name="preset_tomorrow_9">Завтра 9:00</string>
-    <string name="preset_plus_1_week">+1 неделя</string>
 
     <string name="warning_time_ambiguous">Время может быть неточным — уточните</string>
     <string name="warning_date_year">Год подставлен автоматически</string>

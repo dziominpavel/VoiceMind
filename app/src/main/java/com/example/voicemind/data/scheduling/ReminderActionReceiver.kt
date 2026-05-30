@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.example.voicemind.data.ReminderRepository
+import com.example.voicemind.data.notification.AlarmSoundPlayer
 import com.example.voicemind.data.notification.ReminderNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
                     ReminderIntents.ACTION_CANCEL -> repo.cancelReminder(reminderId)
                 }
                 notifier.cancelNotification(reminderId)
+                AlarmSoundPlayer.stop(context)
             } finally {
                 pendingResult.finish()
             }

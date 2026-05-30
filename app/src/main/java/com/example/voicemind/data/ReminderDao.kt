@@ -16,7 +16,7 @@ interface ReminderDao {
     @Query(
         """
         SELECT * FROM reminders
-        WHERE status IN ('SCHEDULED', 'SNOOZED')
+        WHERE status = 'PENDING'
         ORDER BY fireAt ASC, id ASC
         """,
     )
@@ -25,7 +25,7 @@ interface ReminderDao {
     @Query(
         """
         SELECT * FROM reminders
-        WHERE status IN ('SCHEDULED', 'SNOOZED')
+        WHERE status = 'PENDING'
         ORDER BY fireAt ASC, id ASC
         """,
     )
@@ -34,7 +34,7 @@ interface ReminderDao {
     @Query(
         """
         SELECT * FROM reminders
-        WHERE status IN ('FIRED', 'DISMISSED', 'CANCELLED', 'COMPLETED')
+        WHERE status IN ('TRIGGERED', 'DONE', 'CANCELLED')
         ORDER BY fireAt DESC, id DESC
         """,
     )
@@ -56,11 +56,11 @@ interface ReminderDao {
 
     @Query(
         """
-        UPDATE reminders SET status = :status, fireAt = :fireAt, snoozeCount = snoozeCount + 1
+        UPDATE reminders SET status = 'PENDING', fireAt = :fireAt, snoozeCount = snoozeCount + 1
         WHERE id = :id
         """,
     )
-    suspend fun snooze(id: Long, status: String, fireAt: Long)
+    suspend fun snooze(id: Long, fireAt: Long)
 
     @Query("DELETE FROM reminders WHERE id = :id")
     suspend fun delete(id: Long)
@@ -68,10 +68,21 @@ interface ReminderDao {
     @Query(
         """
         SELECT * FROM reminders
-        WHERE status IN ('FIRED', 'DISMISSED', 'CANCELLED', 'COMPLETED')
+        WHERE status IN ('TRIGGERED', 'DONE', 'CANCELLED')
         ORDER BY fireAt DESC, id DESC
         LIMIT :limit
         """,
     )
     suspend fun getRecentHistory(limit: Int): List<Reminder>
+
+    @Query(
+        """
+        SELECT * FROM reminders
+        WHERE status = 'PENDING'
+           OR (status = 'DONE' AND fireAt > :cutoff)
+        ORDER BY fireAt ASC, id ASC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getWidgetReminders(limit: Int, cutoff: Long): List<Reminder>
 }

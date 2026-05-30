@@ -1,5 +1,18 @@
 package com.example.voicemind.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.media.RingtoneManager
+import android.net.Uri
+import android.os.Build
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,21 +23,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import com.example.voicemind.BuildConfig
 import com.example.voicemind.R
 import com.example.voicemind.ui.components.WarningCard
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.util.ReminderPermissions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingsScreen(
@@ -32,10 +58,12 @@ fun SettingsScreen(
     useAlarmSound: Boolean,
     usePushNotification: Boolean,
     useVibration: Boolean,
+    alarmRingtoneUri: String?,
     onConfirmBeforeScheduleChange: (Boolean) -> Unit,
     onUseAlarmSoundChange: (Boolean) -> Unit,
     onUsePushNotificationChange: (Boolean) -> Unit,
     onUseVibrationChange: (Boolean) -> Unit,
+    onSelectRingtone: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -56,6 +84,20 @@ fun SettingsScreen(
                 checked = useAlarmSound,
                 onCheckedChange = onUseAlarmSoundChange,
             )
+            AnimatedVisibility(
+                visible = useAlarmSound,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    RingtonePickerRow(
+                        title = stringResource(R.string.settings_alarm_ringtone),
+                        uri = alarmRingtoneUri,
+                        onClick = onSelectRingtone,
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(Spacing.sm))
             NotificationToggle(
                 title = stringResource(R.string.settings_use_push_notification),
@@ -161,6 +203,37 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+
+        // О разработчике
+        SettingsSection(title = stringResource(R.string.settings_developer_title)) {
+            Text(
+                text = stringResource(R.string.settings_developer_name),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(R.string.settings_developer_link),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("GitHub", "https://github.com/dziominpavel")
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(context, "Скопировано", Toast.LENGTH_SHORT).show()
+                },
+            )
+        }
+
+        // Вопрос–ответ
+        ExpandableSettingsSection(
+            title = stringResource(R.string.settings_faq_title),
+            initiallyExpanded = false,
+        ) {
+            FaqItem(
+                question = stringResource(R.string.faq_phrases_question),
+                answer = stringResource(R.string.faq_phrases_answer),
+            )
+        }
     }
 }
 
@@ -207,5 +280,113 @@ private fun SettingsSection(
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
         content()
+    }
+}
+
+@Composable
+private fun ExpandableSettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    initiallyExpanded: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun RingtonePickerRow(
+    title: String,
+    uri: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val defaultLabel = stringResource(R.string.settings_alarm_ringtone_default)
+    val subtitle by produceState(initialValue = defaultLabel, uri) {
+        value = if (uri == null) {
+            defaultLabel
+        } else {
+            withContext(Dispatchers.IO) {
+                try {
+                    val parsedUri = Uri.parse(uri)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        RingtoneManager.getRingtone(context, parsedUri)?.getTitle(context)
+                    } else {
+                        null
+                    }
+                } catch (_: Exception) {
+                    null
+                } ?: defaultLabel
+            }
+        }
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun FaqItem(
+    question: String,
+    answer: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = question,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Text(
+            text = answer,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

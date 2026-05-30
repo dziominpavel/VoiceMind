@@ -21,4 +21,5 @@ data class Reminder(
     val createdAt: Long,
     val snoozeCount: Int = 0,
     val alarmRequestCode: Int = 0,
+    val deliveryMode: String = DeliveryMode.NOTIFICATION.name,
 )
