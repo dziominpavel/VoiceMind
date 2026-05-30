@@ -20,7 +20,9 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                ReminderRepository.getInstance(context).rescheduleAll()
+                val repo = ReminderRepository.getInstance(context)
+                repo.rescheduleAll()
+                repo.fireOverdue()
                 WidgetRefreshWorker.schedule(context)
             } finally {
                 pendingResult.finish()

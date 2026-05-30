@@ -48,6 +48,7 @@
                 <action android:name="com.example.voicemind.ACTION_REMINDER_DONE" />
                 <action android:name="com.example.voicemind.ACTION_REMINDER_SNOOZE" />
                 <action android:name="com.example.voicemind.ACTION_REMINDER_CANCEL" />
+                <action android:name="com.example.voicemind.ACTION_REMINDER_DISMISS" />
             </intent-filter>
         </receiver>
 

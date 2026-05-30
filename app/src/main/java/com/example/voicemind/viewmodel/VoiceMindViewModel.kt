@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.voicemind.R
+import com.example.voicemind.data.DismissBehavior
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.ReminderStatus
@@ -79,6 +80,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     val alarmRingtoneUri = settings.alarmRingtoneUri
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val dismissBehavior = settings.dismissBehavior
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DismissBehavior.MARK_DONE)
 
     private val _fallbackToSystemSpeech = MutableStateFlow(false)
     val fallbackToSystemSpeech: StateFlow<Boolean> = _fallbackToSystemSpeech.asStateFlow()
@@ -160,6 +164,12 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun setAlarmRingtoneUri(uri: String?) {
         viewModelScope.launch {
             settings.setAlarmRingtoneUri(uri)
+        }
+    }
+
+    fun setDismissBehavior(behavior: DismissBehavior) {
+        viewModelScope.launch {
+            settings.setDismissBehavior(behavior)
         }
     }
 

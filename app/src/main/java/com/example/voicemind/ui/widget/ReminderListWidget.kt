@@ -12,6 +12,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -47,19 +48,37 @@ class ReminderListWidget : GlanceAppWidget() {
 
     override val sizeMode = SizeMode.Responsive(
         setOf(
-            DpSize(250.dp, 120.dp),
-            DpSize(320.dp, 200.dp),
+            DpSize(250.dp, 160.dp),
+            DpSize(320.dp, 220.dp),
         )
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val dao = AppDatabase.getInstance(context).reminderDao()
-        val cutoff = System.currentTimeMillis() - 24 * 60 * 60_000L
-        val displayed = dao.getWidgetReminders(limit = 5, cutoff = cutoff)
+        val cutoff = System.currentTimeMillis() - 30 * 60_000L
+        val recentDoneAll = dao.getWidgetRecentDone(cutoff = cutoff, limit = 5)
+        val upcomingAll = dao.getWidgetUpcoming(limit = 5)
 
         provideContent {
+            val size = LocalSize.current
+            val maxItems = when {
+                size.height >= 200.dp -> 4
+                size.height >= 160.dp -> 3
+                else -> 2
+            }
+
+            val recentDone = recentDoneAll.take(maxItems)
+            val upcoming = upcomingAll.take(maxItems)
+
+            val items = when {
+                upcoming.isNotEmpty() && recentDone.isNotEmpty() ->
+                    (listOf(recentDone.first()) + upcoming).take(maxItems)
+                upcoming.isNotEmpty() -> upcoming.take(maxItems)
+                else -> recentDone.take(maxItems)
+            }
+
             GlanceTheme(colors = VoiceMindWidgetTheme.colors) {
-                if (displayed.isEmpty()) {
+                if (items.isEmpty()) {
                     EmptyState(context)
                 } else {
                     Row(
@@ -70,14 +89,14 @@ class ReminderListWidget : GlanceAppWidget() {
                     ) {
                         Box(
                             modifier = GlanceModifier.defaultWeight(),
-                            contentAlignment = Alignment.CenterStart,
+                            contentAlignment = Alignment.TopStart,
                         ) {
                             Column(
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalAlignment = Alignment.Top,
                             ) {
-                                displayed.forEach { reminder ->
+                                items.forEach { reminder ->
                                     ReminderItem(context, reminder = reminder)
-                                    if (reminder != displayed.last()) {
+                                    if (reminder != items.last()) {
                                         Spacer(modifier = GlanceModifier.height(8.dp))
                                     }
                                 }

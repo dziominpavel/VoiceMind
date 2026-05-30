@@ -31,6 +31,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.voicemind.BuildConfig
 import com.example.voicemind.R
+import com.example.voicemind.data.DismissBehavior
 import com.example.voicemind.ui.components.WarningCard
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.util.ReminderPermissions
@@ -59,12 +61,14 @@ fun SettingsScreen(
     usePushNotification: Boolean,
     useVibration: Boolean,
     alarmRingtoneUri: String?,
+    dismissBehavior: DismissBehavior,
     onConfirmBeforeScheduleChange: (Boolean) -> Unit,
     onUseAlarmSoundChange: (Boolean) -> Unit,
     onUsePushNotificationChange: (Boolean) -> Unit,
     onUseVibrationChange: (Boolean) -> Unit,
     onSelectRingtone: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
+    onDismissBehaviorChange: (DismissBehavior) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -116,6 +120,22 @@ fun SettingsScreen(
 
         // Поведение
         SettingsSection(title = stringResource(R.string.settings_defaults_title)) {
+            Text(
+                text = stringResource(R.string.settings_dismiss_behavior_title),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            RadioOptionRow(
+                title = stringResource(R.string.settings_dismiss_behavior_done),
+                selected = dismissBehavior == DismissBehavior.MARK_DONE,
+                onClick = { onDismissBehaviorChange(DismissBehavior.MARK_DONE) },
+            )
+            RadioOptionRow(
+                title = stringResource(R.string.settings_dismiss_behavior_snooze),
+                selected = dismissBehavior == DismissBehavior.SNOOZE_15,
+                onClick = { onDismissBehaviorChange(DismissBehavior.SNOOZE_15) },
+            )
+            Spacer(modifier = Modifier.height(Spacing.md))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -366,6 +386,30 @@ private fun RingtonePickerRow(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun RadioOptionRow(
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }

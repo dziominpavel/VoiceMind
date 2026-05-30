@@ -21,7 +21,9 @@ class VoiceMindApplication : Application() {
         super.onCreate()
         NotificationChannels.createAll(this)
         appScope.launch {
-            ReminderRepository.getInstance(this@VoiceMindApplication).rescheduleAll()
+            val repo = ReminderRepository.getInstance(this@VoiceMindApplication)
+            repo.rescheduleAll()
+            repo.fireOverdue()
             WidgetUpdater.updateAll(this@VoiceMindApplication)
         }
         WidgetRefreshWorker.schedule(this)

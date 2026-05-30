@@ -79,10 +79,30 @@ interface ReminderDao {
         """
         SELECT * FROM reminders
         WHERE status = 'PENDING'
-           OR (status = 'DONE' AND fireAt > :cutoff)
         ORDER BY fireAt ASC, id ASC
         LIMIT :limit
         """,
     )
-    suspend fun getWidgetReminders(limit: Int, cutoff: Long): List<Reminder>
+    suspend fun getWidgetUpcoming(limit: Int): List<Reminder>
+
+    @Query(
+        """
+        SELECT * FROM reminders
+        WHERE status IN ('DONE', 'TRIGGERED')
+          AND fireAt > :cutoff
+        ORDER BY fireAt DESC, id DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getWidgetRecentDone(cutoff: Long, limit: Int): List<Reminder>
+
+    @Query(
+        """
+        SELECT * FROM reminders
+        WHERE status = 'PENDING'
+          AND fireAt <= :now
+        ORDER BY fireAt ASC, id ASC
+        """,
+    )
+    suspend fun getOverduePending(now: Long): List<Reminder>
 }

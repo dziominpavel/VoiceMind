@@ -3,7 +3,6 @@ package com.example.voicemind.data.scheduling
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import com.example.voicemind.data.Reminder
 
 object ReminderIntents {
 
@@ -13,6 +12,7 @@ object ReminderIntents {
     const val ACTION_DONE = "com.example.voicemind.ACTION_REMINDER_DONE"
     const val ACTION_SNOOZE = "com.example.voicemind.ACTION_REMINDER_SNOOZE"
     const val ACTION_CANCEL = "com.example.voicemind.ACTION_REMINDER_CANCEL"
+    const val ACTION_DISMISS = "com.example.voicemind.ACTION_REMINDER_DISMISS"
 
     fun alarmIntent(context: Context, reminderId: Long): PendingIntent {
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
