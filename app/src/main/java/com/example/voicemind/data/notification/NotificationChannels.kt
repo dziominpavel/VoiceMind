@@ -14,7 +14,7 @@ object NotificationChannels {
     const val SILENT = "reminders_silent_v2"
 
     private val ALARM_VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500)
-    private val DEFAULT_VIBRATE_PATTERN = longArrayOf(0, 300, 150, 300)
+    val DEFAULT_VIBRATE_PATTERN = longArrayOf(0, 300, 150, 300)
 
     fun createAll(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

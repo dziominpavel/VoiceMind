@@ -34,6 +34,8 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     val customUri = settings.alarmRingtoneUri.first()
                     val volume = settings.alarmVolume.first()
                     AlarmSoundPlayer.play(context, customUri, volume)
+                } else if (deliveryMode == DeliveryMode.VIBRATE_ONLY) {
+                    AlarmSoundPlayer.playVibrationOnly(context)
                 }
 
                 repo.markFiredAndShow(reminderId)

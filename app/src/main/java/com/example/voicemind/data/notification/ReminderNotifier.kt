@@ -69,6 +69,9 @@ class ReminderNotifier(private val context: Context) {
             builder.setSound(null)
         } else if (deliveryMode == DeliveryMode.NOTIFICATION) {
             builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+        } else if (deliveryMode == DeliveryMode.VIBRATE_ONLY) {
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
         } else {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }
