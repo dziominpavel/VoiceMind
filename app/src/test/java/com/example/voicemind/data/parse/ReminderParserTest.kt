@@ -505,6 +505,20 @@ class ReminderParserTest {
     }
 
     @Test
+    fun in3Minutes_bodyClean() {
+        val r = parser.parse("через 3 минуты попить кофе", now)
+        assertEquals(now.plusSeconds(3 * 60), r.fireAt)
+        assertEquals("попить кофе", r.body)
+    }
+
+    @Test
+    fun in3Min_shortForm() {
+        val r = parser.parse("через 3 мин попить кофе", now)
+        assertEquals(now.plusSeconds(3 * 60), r.fireAt)
+        assertEquals("попить кофе", r.body)
+    }
+
+    @Test
     fun bodyNotEmpty_whenOnlyTimeProvided() {
         val r = parser.parse("в 15:00", now)
         assertNotNull(r.fireAt)
