@@ -524,7 +524,7 @@ class ReminderParser(
         )
 
         private val RELATIVE_DELTA = Regex(
-            """через\s+(?:(\d+)\s*)?(минут|минуты|минуту|мин|час|часа|часов|ч|день|дня|дней)""",
+            """через\s+(?:(\d+)\s*)?(минуты|минуту|минут|мин|часа|часов|час|ч|дня|дней|день)""",
         )
         private val RELATIVE_HALF = Regex("""${WB}через\s+полчаса${WE}""")
         private val RELATIVE_ONE_HALF = Regex("""${WB}через\s+полтора\s+часа${WE}""")

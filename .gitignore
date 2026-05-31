@@ -51,6 +51,9 @@ Desktop.ini
 *.wav
 *.tmp
 
+# Logcat dumps for local debugging
+/logs/
+
 # Signing / credentials
 *.jks
 *.keystore

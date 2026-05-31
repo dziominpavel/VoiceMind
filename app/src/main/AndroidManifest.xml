@@ -74,7 +74,7 @@
         </receiver>
 
         <receiver
-            android:name=".ui.widget.ReminderListWidgetReceiver"
+            android:name=".ui.widget.ReminderListWidgetProvider"
             android:exported="true"
             android:label="@string/widget_list_label">
             <intent-filter>
@@ -83,6 +83,14 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_list_provider" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.WidgetToggleReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.voicemind.ACTION_WIDGET_TOGGLE" />
+            </intent-filter>
         </receiver>
     </application>
 
