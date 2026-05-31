@@ -7,6 +7,8 @@ import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 
@@ -14,6 +16,10 @@ object AlarmSoundPlayer {
 
     private var ringtone: Ringtone? = null
     private var previousVolume: Int? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var stopRunnable: Runnable? = null
+    private const val AUTO_STOP_MS = 60_000L
+    private val VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500)
 
     fun play(context: Context, customUriString: String? = null, volumePercent: Int = 100) {
         stop(context)
@@ -41,6 +47,17 @@ object AlarmSoundPlayer {
             play()
         }
 
+        startVibration(context)
+        scheduleAutoStop(context)
+    }
+
+    fun playVibrationOnly(context: Context) {
+        stop(context)
+        startVibration(context)
+        scheduleAutoStop(context)
+    }
+
+    private fun startVibration(context: Context) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             context.getSystemService(Vibrator::class.java)
         } else {
@@ -51,16 +68,25 @@ object AlarmSoundPlayer {
         vibrator?.let { vib ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 vib.vibrate(
-                    VibrationEffect.createWaveform(longArrayOf(0, 500, 200, 500, 200, 500), 0),
+                    VibrationEffect.createWaveform(VIBRATE_PATTERN, 0),
                 )
             } else {
                 @Suppress("DEPRECATION")
-                vib.vibrate(longArrayOf(0, 500, 200, 500, 200, 500), 0)
+                vib.vibrate(VIBRATE_PATTERN, 0)
             }
         }
     }
 
+    private fun scheduleAutoStop(context: Context) {
+        stopRunnable?.let { handler.removeCallbacks(it) }
+        stopRunnable = Runnable { stop(context.applicationContext) }
+        handler.postDelayed(stopRunnable!!, AUTO_STOP_MS)
+    }
+
     fun stop(context: Context) {
+        stopRunnable?.let { handler.removeCallbacks(it) }
+        stopRunnable = null
+
         ringtone?.stop()
         ringtone = null
 
