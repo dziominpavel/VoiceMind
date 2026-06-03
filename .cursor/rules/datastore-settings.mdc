@@ -1,7 +1,7 @@
 ---
-trigger: glob
 description: Настройки приложения через DataStore
 globs: ["**/data/SettingsRepository*", "**/SettingsScreen*", "**/viewmodel/**"]
+alwaysApply: false
 ---
 
 # DataStore & AppSettings

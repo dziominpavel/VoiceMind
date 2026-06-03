@@ -52,7 +52,7 @@ class ReminderParser(
         var hadExplicitDate = bestDate != null
         var hadExplicitTime = bestTime != null
         var hadTodayWord = bestDate?.type == DateType.TODAY
-        var hadWeekday = bestDate?.type == DateType.WEEKDAY
+        var hadWeekday = bestDate?.type == DateType.WEEKDAY || bestDate?.type == DateType.NEXT_WEEKDAY || bestDate?.type == DateType.WEEKEND
         var usedPartOfDay = bestTime?.type == TimeType.PART_OF_DAY
         var relativeOnly = bestDate?.relativeOnly == true
 
@@ -72,7 +72,7 @@ class ReminderParser(
         if (hadExplicitTime && time != null) {
             val dt = LocalDateTime.of(date, time)
             fireAt = dt.atZone(zone).toInstant()
-        } else if (relativeOnly && hadExplicitDate) {
+        } else if (hadExplicitDate) {
             fireAt = date.atTime(DEFAULT_MORNING).atZone(zone).toInstant()
             warnings += ParseWarning.NO_TIME_FOUND
         }
@@ -147,8 +147,8 @@ class ReminderParser(
         val score: Int,
     )
 
-    private enum class DateType { RELATIVE_DAYS, TODAY, TOMORROW, DAY_AFTER_TOMORROW, WEEKDAY, DMY, DAY_MONTH }
-    private enum class TimeType { HH_MM, HHMM, HOURS_MINUTES, HOURS_PART, MIDNIGHT_NOON, HOURS_WORD, HOURS_SHORT, PART_OF_DAY }
+    private enum class DateType { RELATIVE_DAYS, TODAY, TOMORROW, DAY_AFTER_TOMORROW, WEEKDAY, NEXT_WEEKDAY, WEEKEND, DMY, DAY_MONTH, ORDINAL_DAY }
+    private enum class TimeType { HH_MM, HHMM, HOURS_MINUTES, HOURS_PART, MIDNIGHT_NOON, HOURS_WORD, HOURS_SHORT, PART_OF_DAY, HALF_PAST, QUARTER_TO, QUARTER_PAST, HALF_WITH, PART_PREFIX }
 
     private fun findAllCandidates(lowerText: String, zonedNow: ZonedDateTime): CandidateSet {
         val dateCandidates = mutableListOf<DateCandidate>()
@@ -194,6 +194,30 @@ class ReminderParser(
             }
         }
 
+        if (relativeInstant == null) {
+            RELATIVE_COUPLE_HOURS.find(lowerText)?.let { m ->
+                relativeSpans += m.range
+                relativeInstant = zonedNow.plusHours(2).toInstant()
+            }
+        }
+
+        if (relativeInstant == null) {
+            RELATIVE_FEW_MINUTES.find(lowerText)?.let { m ->
+                relativeSpans += m.range
+                relativeInstant = zonedNow.plusMinutes(5).toInstant()
+            }
+        }
+
+        RELATIVE_WEEK.find(lowerText)?.let { m ->
+            dateCandidates += DateCandidate(
+                date = zonedNow.toLocalDate().plusDays(7),
+                span = m.range,
+                type = DateType.RELATIVE_DAYS,
+                score = 45,
+                relativeOnly = true,
+            )
+        }
+
         DAY_AFTER_TOMORROW.find(lowerText)?.let { m ->
             dateCandidates += DateCandidate(
                 date = zonedNow.toLocalDate().plusDays(2),
@@ -229,6 +253,25 @@ class ReminderParser(
             )
         }
 
+        NEXT_WEEKDAY.findAll(lowerText).forEach { m ->
+            val dow = weekdayFromGroup(m.groupValues[2])
+            dateCandidates += DateCandidate(
+                date = nextWeekday(zonedNow.toLocalDate(), dow),
+                span = m.range,
+                type = DateType.NEXT_WEEKDAY,
+                score = 85,
+            )
+        }
+
+        WEEKEND.find(lowerText)?.let { m ->
+            dateCandidates += DateCandidate(
+                date = nextOrSameWeekday(zonedNow.toLocalDate(), DayOfWeek.SATURDAY, zonedNow.toLocalTime()),
+                span = m.range,
+                type = DateType.WEEKEND,
+                score = 75,
+            )
+        }
+
         DATE_DMY.findAll(lowerText).forEach { m ->
             val d = m.groupValues[1].toInt()
             val mo = m.groupValues[2].toInt()
@@ -252,7 +295,8 @@ class ReminderParser(
 
         DATE_DAY_MONTH.findAll(lowerText).forEach { m ->
             val d = m.groupValues[1].toInt()
-            val month = monthFromName(m.groupValues[2])
+            val monthName = m.groupValues[2]
+            val month = monthFromName(monthName).let { if (it == 12 && (monthName.endsWith("ь") || monthName == "май" || monthName.endsWith("м"))) monthFromNominative(monthName) else it }
             var y = m.groupValues[3].toIntOrNull() ?: zonedNow.year
             var candidate = LocalDate.of(y, month, d)
             var missingYear = false
@@ -267,6 +311,38 @@ class ReminderParser(
                 score = 90,
                 missingYear = missingYear,
             )
+        }
+
+        DATE_ORDINAL.findAll(lowerText).forEach { m ->
+            val day = ordinalDayFromGroup(m.groupValues[1])
+            if (day in 1..31) {
+                var candidate = LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
+                if (candidate.isBefore(zonedNow.toLocalDate())) {
+                    candidate = candidate.plusMonths(1)
+                }
+                dateCandidates += DateCandidate(
+                    date = candidate,
+                    span = m.range,
+                    type = DateType.ORDINAL_DAY,
+                    score = 85,
+                )
+            }
+        }
+
+        DATE_ORDINAL_DIGIT.findAll(lowerText).forEach { m ->
+            val day = m.groupValues[1].toInt()
+            if (day in 1..31) {
+                var candidate = LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
+                if (candidate.isBefore(zonedNow.toLocalDate())) {
+                    candidate = candidate.plusMonths(1)
+                }
+                dateCandidates += DateCandidate(
+                    date = candidate,
+                    span = m.range,
+                    type = DateType.ORDINAL_DAY,
+                    score = 85,
+                )
+            }
         }
 
         val dateSpans = dateCandidates.map { it.span }
@@ -362,6 +438,82 @@ class ReminderParser(
                     )
                 }
             }
+        }
+
+        TIME_HALF_PAST.findAll(lowerText).forEach { m ->
+            val hourWord = m.groupValues[1]
+            val h = hourWordToInt(hourWord)
+            if (h > 0) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of((h - 1).coerceIn(0, 23), 30),
+                    span = m.range,
+                    type = TimeType.HALF_PAST,
+                    score = 90,
+                )
+            }
+        }
+
+        TIME_QUARTER_TO.findAll(lowerText).forEach { m ->
+            val minuteWord = m.groupValues[1]
+            val minutes = when {
+                minuteWord == "четверть" -> 15
+                minuteWord == "пятнадцати" || minuteWord == "15" -> 15
+                else -> 15
+            }
+            val hourWord = m.groupValues[2]
+            val h = hourWordToInt(hourWord)
+            if (h > 0) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of((h - 1).coerceIn(0, 23), 60 - minutes),
+                    span = m.range,
+                    type = TimeType.QUARTER_TO,
+                    score = 90,
+                )
+            }
+        }
+
+        TIME_QUARTER_PAST.findAll(lowerText).forEach { m ->
+            val hourWord = m.groupValues[1]
+            val h = hourWordToInt(hourWord)
+            if (h > 0) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of((h - 1).coerceIn(0, 23), 15),
+                    span = m.range,
+                    type = TimeType.QUARTER_PAST,
+                    score = 90,
+                )
+            }
+        }
+
+        TIME_HALF_WITH.findAll(lowerText).forEach { m ->
+            val hourWord = m.groupValues[1]
+            val h = hourWordToInt(hourWord)
+            if (h > 0) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of(h.coerceIn(0, 23), 30),
+                    span = m.range,
+                    type = TimeType.HALF_WITH,
+                    score = 85,
+                )
+            }
+        }
+
+        TIME_PART_PREFIX.findAll(lowerText).forEach { m ->
+            val part = m.groupValues[1]
+            val hour = m.groupValues[2].toInt()
+            val h = when (part.lowercase()) {
+                "утром" -> hour
+                "днём", "днем" -> if (hour == 12) 12 else hour + 12
+                "вечером" -> if (hour == 12) 12 else hour + 12
+                "ночью" -> if (hour == 12) 0 else hour
+                else -> hour
+            }
+            timeCandidates += TimeCandidate(
+                time = LocalTime.of(h.coerceIn(0, 23), 0),
+                span = m.range,
+                type = TimeType.PART_PREFIX,
+                score = 85,
+            )
         }
 
         PART_OF_DAY.findAll(lowerText).forEach { m ->
@@ -487,6 +639,11 @@ class ReminderParser(
         else -> DayOfWeek.SUNDAY
     }
 
+    private fun ordinalDayFromGroup(phrase: String): Int {
+        val normalized = phrase.lowercase().replace("-", " ").replace(Regex("\\s+"), " ").trim()
+        return ORDINAL_DAY_MAP[normalized] ?: -1
+    }
+
     private fun monthFromName(name: String): Int = when (name.lowercase()) {
         "января" -> 1
         "февраля" -> 2
@@ -500,6 +657,47 @@ class ReminderParser(
         "октября" -> 10
         "ноября" -> 11
         else -> 12
+    }
+
+    private fun monthFromNominative(name: String): Int = when (name.lowercase()) {
+        "январь" -> 1
+        "февраль" -> 2
+        "март" -> 3
+        "апрель" -> 4
+        "май" -> 5
+        "июнь" -> 6
+        "июль" -> 7
+        "август" -> 8
+        "сентябрь" -> 9
+        "октябрь" -> 10
+        "ноябрь" -> 11
+        else -> 12
+    }
+
+    private fun hourWordToInt(word: String): Int {
+        return when (word.lowercase().trim()) {
+            "один", "первого" -> 1
+            "два", "второго" -> 2
+            "три", "третьего" -> 3
+            "четыре", "четвёртого", "четвертого" -> 4
+            "пять", "пятого" -> 5
+            "шесть", "шестого" -> 6
+            "семь", "седьмого" -> 7
+            "восемь", "восьмого" -> 8
+            "девять", "девятого" -> 9
+            "десять", "десятого" -> 10
+            "одиннадцать", "одиннадцатого" -> 11
+            "двенадцать", "двенадцатого" -> 12
+            else -> -1
+        }
+    }
+
+    private fun nextWeekday(today: LocalDate, target: DayOfWeek): LocalDate {
+        var d = today
+        while (d.dayOfWeek != target) {
+            d = d.plusDays(1)
+        }
+        return d.plusDays(7)
     }
 
     private fun partOfDayTime(token: String): LocalTime = when (token.lowercase()) {
@@ -517,10 +715,14 @@ class ReminderParser(
         private const val WE = """(?![\p{L}\d])"""
 
         private val PREFIXES = listOf(
-            "напомни",
-            "напоминание",
-            "нужно",
+            "сделай напоминание",
+            "поставь напоминалку",
+            "чтобы не забыть",
+            "напомни мне",
             "не забудь",
+            "напоминание",
+            "напомни",
+            "нужно",
         )
 
         private val RELATIVE_DELTA = Regex(
@@ -528,12 +730,19 @@ class ReminderParser(
         )
         private val RELATIVE_HALF = Regex("""${WB}через\s+полчаса${WE}""")
         private val RELATIVE_ONE_HALF = Regex("""${WB}через\s+полтора\s+часа${WE}""")
+        private val RELATIVE_COUPLE_HOURS = Regex("""${WB}через\s+пару\s+часов${WE}""")
+        private val RELATIVE_FEW_MINUTES = Regex("""${WB}через\s+несколько\s+минут${WE}""")
+        private val RELATIVE_WEEK = Regex("""${WB}через\s+неделю${WE}""")
         private val DAY_TODAY = Regex("""${WB}сегодня${WE}""")
         private val DAY_TOMORROW = Regex("""${WB}завтра${WE}""")
         private val DAY_AFTER_TOMORROW = Regex("""${WB}послезавтра${WE}""")
         private val WEEKDAY = Regex(
             """${WB}[вво]+\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|воскресенья)${WE}""",
         )
+        private val NEXT_WEEKDAY = Regex(
+            """${WB}в\s+следующ(ий|ую)\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|воскресенья)${WE}""",
+        )
+        private val WEEKEND = Regex("""${WB}на\s+выходных${WE}""")
         // Только с «в », чтобы не спутать 01.06.2026 с временем 6:20
         private val TIME_COLON = Regex("""${WB}(?:в\s+)?(\d{1,2})[:.](\d{2})""")
         private val TIME_HOURS_PART = Regex("""${WB}в\s+(\d{1,2})\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""")
@@ -544,10 +753,67 @@ class ReminderParser(
         )
         private val TIME_HOURS_SHORT = Regex("""${WB}в\s+(\d{1,2})${WE}""")
         private val TIME_4DIGIT = Regex("""${WB}(?:в\s+)?(\d{1,2})\s?(\d{2})${WE}""")
+        private val TIME_HALF_PAST = Regex("""${WB}(?:в\s+)?половин[ае]\s+(двенадцатого|одиннадцатого|десятого|девятого|восьмого|седьмого|шестого|пятого|четвёртого|четвертого|третьего|второго|первого)${WE}""")
+        private val TIME_QUARTER_TO = Regex("""${WB}без\s+(четверти|пятнадцати|15)\s+(?:часа\s+)?(двенадцать|одиннадцать|десять|девять|восемь|семь|шесть|пять|четыре|три|два|один)${WE}""")
+        private val TIME_QUARTER_PAST = Regex("""${WB}(?:в\s+)?четверть\s+(двенадцатого|одиннадцатого|десятого|девятого|восьмого|седьмого|шестого|пятого|четвёртого|четвертого|третьего|второго|первого)${WE}""")
+        private val TIME_HALF_WITH = Regex("""${WB}(?:в\s+)?(двенадцать|одиннадцать|десять|девять|восемь|семь|шесть|пять|четыре|три|два|один)\s+с\s+половиной${WE}""")
+        private val TIME_PART_PREFIX = Regex("""${WB}(утром|днём|днем|вечером|ночью)\s+в\s+(\d{1,2})${WE}""")
         private val PART_OF_DAY = Regex("""${WB}(утром|днём|днем|вечером|ночью)${WE}""")
         private val DATE_DMY = Regex("""${WB}(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?${WE}""")
         private val DATE_DAY_MONTH = Regex(
-            """${WB}(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+(\d{4}))?${WE}""",
+            """${WB}(\d{1,2})\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря|январь|февраль|март|апрель|май|июнь|июль|август|сентябрь|октябрь|ноябрь|декабрь)(?:\s+(\d{4}))?${WE}""",
         )
+
+        private val ORDINAL_WORDS = listOf(
+            "первого", "второго", "третьего",
+            "четвёртого", "четвертого", "пятого", "шестого", "седьмого", "восьмого", "девятого", "десятого",
+            "одиннадцатого", "двенадцатого", "тринадцатого", "четырнадцатого", "пятнадцатого",
+            "шестнадцатого", "семнадцатого", "восемнадцатого", "девятнадцатого", "двадцатого",
+            "двадцать первого", "двадцать второго", "двадцать третьего",
+            "двадцать четвёртого", "двадцать четвертого", "двадцать пятого", "двадцать шестого",
+            "двадцать седьмого", "двадцать восьмого", "двадцать девятого", "тридцатого",
+            "тридцать первого",
+        )
+
+        private val ORDINAL_DAY_MAP: Map<String, Int> = mapOf(
+            "первого" to 1,
+            "второго" to 2,
+            "третьего" to 3,
+            "четвёртого" to 4,
+            "четвертого" to 4,
+            "пятого" to 5,
+            "шестого" to 6,
+            "седьмого" to 7,
+            "восьмого" to 8,
+            "девятого" to 9,
+            "десятого" to 10,
+            "одиннадцатого" to 11,
+            "двенадцатого" to 12,
+            "тринадцатого" to 13,
+            "четырнадцатого" to 14,
+            "пятнадцатого" to 15,
+            "шестнадцатого" to 16,
+            "семнадцатого" to 17,
+            "восемнадцатого" to 18,
+            "девятнадцатого" to 19,
+            "двадцатого" to 20,
+            "двадцать первого" to 21,
+            "двадцать второго" to 22,
+            "двадцать третьего" to 23,
+            "двадцать четвёртого" to 24,
+            "двадцать четвертого" to 24,
+            "двадцать пятого" to 25,
+            "двадцать шестого" to 26,
+            "двадцать седьмого" to 27,
+            "двадцать восьмого" to 28,
+            "двадцать девятого" to 29,
+            "тридцатого" to 30,
+            "тридцать первого" to 31,
+        )
+
+        private val DATE_ORDINAL = Regex(
+            """${WB}(${ORDINAL_WORDS.joinToString("|")})\s+числа${WE}""",
+        )
+        private val DATE_ORDINAL_DIGIT = Regex("""${WB}(\d{1,2})\s+числа${WE}""")
     }
 }

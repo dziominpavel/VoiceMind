@@ -1,7 +1,7 @@
 ---
-trigger: glob
 description: Правила для unit, instrumented и manual тестов
 globs: ["**/test/**", "**/androidTest/**", "**/*Test.kt"]
+alwaysApply: false
 ---
 
 # Testing

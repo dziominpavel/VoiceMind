@@ -1,7 +1,7 @@
 ---
-trigger: glob
 description: Правила для SpeechRecognizer и fallback
 globs: ["**/data/speech/**", "**/ui/screens/HomeScreen*"]
+alwaysApply: false
 ---
 
 # Speech Recognition (STT)

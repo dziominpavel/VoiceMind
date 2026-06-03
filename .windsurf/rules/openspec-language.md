@@ -1,0 +1,18 @@
+---
+trigger: glob
+description: Язык openspec-артефактов — русский
+globs:
+  - "openspec/**/*"
+  - ".windsurf/rules/*"
+---
+
+# Язык openspec
+
+Все артефакты openspec (proposal, design, specs, tasks) пишутся на **русском языке**.
+
+- proposal.md — русский
+- design.md — русский
+- specs/**/*.md — русский
+- tasks.md — русский
+
+Код внутри артефактов (snippets, примеры) — английский, как и весь кодовой базе.
