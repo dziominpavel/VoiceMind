@@ -47,6 +47,15 @@ class ReminderParser(
         bestDate?.span?.let { spans += it }
         bestTime?.span?.let { spans += it }
 
+        // Если exact time пересекается с HOURS_PART — возьмём широкий span, чтобы маркер не утёк в body
+        if (bestTime != null && (bestTime.type == TimeType.HH_MM || bestTime.type == TimeType.HHMM)) {
+            candidates.timeCandidates.find {
+                it.type == TimeType.HOURS_PART &&
+                    it.span.first <= bestTime.span.first &&
+                    it.span.last >= bestTime.span.last
+            }?.let { spans += it.span }
+        }
+
         var date = bestDate?.date ?: zonedNow.toLocalDate()
         var time = bestTime?.time
         var hadExplicitDate = bestDate != null
@@ -90,6 +99,10 @@ class ReminderParser(
                 }
                 hadWeekday -> {
                     fireAt = fireAt.plus(7, ChronoUnit.DAYS)
+                    warnings += ParseWarning.PAST_TIME_ADJUSTED
+                }
+                hadExplicitTime && !hadExplicitDate -> {
+                    fireAt = fireAt.plus(1, ChronoUnit.DAYS)
                     warnings += ParseWarning.PAST_TIME_ADJUSTED
                 }
             }
@@ -364,7 +377,8 @@ class ReminderParser(
 
         TIME_HOURS_PART.findAll(lowerText).forEach { m ->
             val hour = m.groupValues[1].toInt()
-            val part = m.groupValues[2]
+            val min = m.groupValues[2].toIntOrNull() ?: 0
+            val part = m.groupValues[3]
             val h = when (part) {
                 "утра", "утром" -> hour
                 "дня", "днём", "днем" -> if (hour == 12) 12 else hour + 12
@@ -373,7 +387,7 @@ class ReminderParser(
                 else -> hour
             }
             timeCandidates += TimeCandidate(
-                time = LocalTime.of(h.coerceIn(0, 23), 0),
+                time = LocalTime.of(h.coerceIn(0, 23), min),
                 span = m.range,
                 type = TimeType.HOURS_PART,
                 score = 80,
@@ -591,12 +605,15 @@ class ReminderParser(
 
     private fun extractBody(text: String, spans: List<IntRange>): String {
         if (spans.isEmpty()) return text.trim().trim(',', '.', ' ')
-        val sorted = spans.sortedByDescending { it.first }
-        val sb = StringBuilder(text)
-        sorted.forEach { range ->
-            val start = range.first.coerceIn(0, sb.length)
-            val end = (range.last + 1).coerceIn(0, sb.length)
-            if (start < end) sb.delete(start, end)
+        val remove = BooleanArray(text.length)
+        spans.forEach { range ->
+            val start = range.first.coerceIn(0, text.length)
+            val end = (range.last + 1).coerceIn(0, text.length)
+            for (i in start until end) remove[i] = true
+        }
+        val sb = StringBuilder()
+        text.forEachIndexed { index, char ->
+            if (!remove[index]) sb.append(char)
         }
         return sb.toString()
             .replace(Regex("\\s+"), " ")
@@ -703,8 +720,9 @@ class ReminderParser(
     private fun partOfDayTime(token: String): LocalTime = when (token.lowercase()) {
         "утром" -> LocalTime.of(9, 0)
         "днём", "днем" -> LocalTime.of(13, 0)
-        "вечером" -> LocalTime.of(19, 0)
-        else -> LocalTime.of(22, 0)
+        "вечером" -> LocalTime.of(22, 0)
+        "ночью" -> LocalTime.of(1, 0)
+        else -> LocalTime.of(1, 0)
     }
 
     companion object {
@@ -745,7 +763,7 @@ class ReminderParser(
         private val WEEKEND = Regex("""${WB}на\s+выходных${WE}""")
         // Только с «в », чтобы не спутать 01.06.2026 с временем 6:20
         private val TIME_COLON = Regex("""${WB}(?:в\s+)?(\d{1,2})[:.](\d{2})""")
-        private val TIME_HOURS_PART = Regex("""${WB}в\s+(\d{1,2})\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""")
+        private val TIME_HOURS_PART = Regex("""${WB}в\s+(\d{1,2})(?:[:.](\d{2}))?\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""")
         private val TIME_MIDNIGHT_NOON = Regex("""${WB}в\s+(полночь|полдень|полдня|12\s+ночи|12\s+дня|12\s+утра|12\s+вечера)${WE}""")
         private val TIME_HOURS = Regex("""${WB}в\s+(\d{1,2})\s+час(?:а|ов)?${WE}""")
         private val TIME_HOURS_MIN = Regex(
@@ -814,6 +832,6 @@ class ReminderParser(
         private val DATE_ORDINAL = Regex(
             """${WB}(${ORDINAL_WORDS.joinToString("|")})\s+числа${WE}""",
         )
-        private val DATE_ORDINAL_DIGIT = Regex("""${WB}(\d{1,2})\s+числа${WE}""")
+        private val DATE_ORDINAL_DIGIT = Regex("""${WB}(\d{1,2})(?:-го)?\s+числа${WE}""")
     }
 }
