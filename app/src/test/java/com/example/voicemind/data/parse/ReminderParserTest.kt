@@ -524,4 +524,273 @@ class ReminderParserTest {
         assertNotNull(r.fireAt)
         assertTrue(r.body.isBlank() || r.warnings.contains(ParseWarning.BODY_EMPTY))
     }
+
+    // --- Ordinal day ("числа") ---
+
+    @Test
+    fun ordinalDay_ninth_bodyClean() {
+        // now = 17 мая; "девятого числа" → 9 июня (уже прошло в мае)
+        val r = parser.parse("девятого числа заполнить анкету", now)
+        assertEquals(LocalDateTime.of(2026, 6, 9, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("заполнить анкету", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun ordinalDay_first_sameMonth() {
+        // now = 17 мая; "первого числа" → 1 июня
+        val r = parser.parse("первого числа оплатить счёт", now)
+        assertEquals(LocalDateTime.of(2026, 6, 1, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("оплатить счёт", r.body)
+    }
+
+    @Test
+    fun ordinalDay_thirtyFirst_withTime() {
+        val r = parser.parse("тридцать первого числа в 10:00 отчёт", now)
+        assertEquals(LocalDateTime.of(2026, 5, 31, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("отчёт", r.body)
+        assertTrue(r.confidence >= 0.8f)
+    }
+
+    @Test
+    fun ordinalDay_twentyFifth_withTime() {
+        val r = parser.parse("двадцать пятого числа в 14:30 встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 25, 14, 30).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun ordinalDay_futureSameMonth_noRoll() {
+        // now = 17 мая; "двадцатого числа" → 20 мая
+        val r = parser.parse("двадцатого числа купить подарок", now)
+        assertEquals(LocalDateTime.of(2026, 5, 20, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("купить подарок", r.body)
+    }
+
+    @Test
+    fun ordinalDay_compositeForm_withTime() {
+        // "двадцать первого числа" — composite form; now=17 мая, 21 мая ещё впереди
+        val r = parser.parse("двадцать первого числа в 18:00 тренировка", now)
+        assertEquals(LocalDateTime.of(2026, 5, 21, 18, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("тренировка", r.body)
+    }
+
+    @Test
+    fun dayMonth_noTime_defaultMorning() {
+        // "9 июня" — DATE_DAY_MONTH без времени; now=17 мая
+        val r = parser.parse("9 июня заполни анкету", now)
+        assertEquals(LocalDateTime.of(2026, 6, 9, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("заполни анкету", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    // --- New prefixes (1.1) ---
+
+    @Test
+    fun prefix_makeReminder() {
+        val r = parser.parse("сделай напоминание завтра в 10:00 оплатить счёт", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("оплатить счёт", r.body)
+    }
+
+    @Test
+    fun prefix_setReminder() {
+        val r = parser.parse("поставь напоминалку завтра в 10:00 позвонить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun prefix_remindMe() {
+        val r = parser.parse("напомни мне завтра в 10:00 купить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("купить", r.body)
+    }
+
+    @Test
+    fun prefix_soNotToForget() {
+        val r = parser.parse("чтобы не забыть завтра в 10:00 встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    // --- Nominative month (1.2–1.3) ---
+
+    @Test
+    fun nominativeMay_noTime() {
+        val r = parser.parse("9 май заполни анкету", now)
+        // now = 17 мая; 9 мая уже прошло → 9 мая 2027
+        assertEquals(LocalDateTime.of(2027, 5, 9, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("заполни анкету", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.DATE_MISSING_YEAR))
+    }
+
+    @Test
+    fun nominativeJune_withTime() {
+        val r = parser.parse("25 июнь в 10:00 встреча", now)
+        assertEquals(LocalDateTime.of(2026, 6, 25, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun nominativeDecember_withYear() {
+        val r = parser.parse("20 декабрь 2026 в 10:00 праздник", now)
+        assertEquals(LocalDateTime.of(2026, 12, 20, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("праздник", r.body)
+    }
+
+    // --- Next weekday (2.1–2.5) ---
+
+    @Test
+    fun nextMonday_withTime() {
+        // now = воскресенье 17 мая; следующий понедельник = 25 мая
+        val r = parser.parse("в следующий понедельник в 10:00 встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 25, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun nextWednesday_feminine_noTime() {
+        // now = воскресенье 17 мая; следующая среда = 27 мая
+        val r = parser.parse("в следующую среду позвонить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 27, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun nextFriday_withTime() {
+        // now = воскресенье 17 мая; следующая пятница = 29 мая
+        val r = parser.parse("в следующую пятницу в 18:00 тренировка", now)
+        assertEquals(LocalDateTime.of(2026, 5, 29, 18, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("тренировка", r.body)
+    }
+
+    // --- Weekend phrases (3.1–3.4) ---
+
+    @Test
+    fun weekend_defaultMorning() {
+        // now = воскресенье 17 мая; ближайшая суббота = 23 мая
+        val r = parser.parse("на выходных сходить в магазин", now)
+        assertEquals(LocalDateTime.of(2026, 5, 23, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("сходить в магазин", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun weekend_withExplicitTime() {
+        val r = parser.parse("на выходных в 11:00 бранч", now)
+        assertEquals(LocalDateTime.of(2026, 5, 23, 11, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("бранч", r.body)
+    }
+
+    // --- Compound time expressions (4.1–4.6) ---
+
+    @Test
+    fun halfPast_eightThirty() {
+        val r = parser.parse("в половине девятого позвонить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 8, 30).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun quarterTo_nine_withoutMinutesWord() {
+        val r = parser.parse("без четверти восемь", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 7, 45).atZone(zone).toInstant(), r.fireAt)
+    }
+
+    @Test
+    fun quarterTo_fifteenMinutes() {
+        val r = parser.parse("без пятнадцати девять встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 8, 45).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun quarterPast_eightFifteen() {
+        val r = parser.parse("в четверть девятого обед", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 8, 15).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("обед", r.body)
+    }
+
+    @Test
+    fun halfWith_nineThirty() {
+        val r = parser.parse("в девять с половиной звонок", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 9, 30).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("звонок", r.body)
+    }
+
+    // --- Approximate relative time (5.1–5.5) ---
+
+    @Test
+    fun coupleOfHours_relative() {
+        val r = parser.parse("через пару часов позвонить", now)
+        assertEquals(now.plusSeconds(2 * 3600), r.fireAt)
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun fewMinutes_relative() {
+        val r = parser.parse("через несколько минут проверить", now)
+        assertEquals(now.plusSeconds(5 * 60), r.fireAt)
+        assertEquals("проверить", r.body)
+    }
+
+    @Test
+    fun inAWeek_defaultMorning() {
+        val r = parser.parse("через неделю сдать отчёт", now)
+        assertEquals(LocalDateTime.of(2026, 5, 24, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("сдать отчёт", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    // --- Digit ordinal day (6.1–6.3) ---
+
+    @Test
+    fun digitOrdinalDay_ninth() {
+        // now = 17 мая; "9 числа" → 9 июня
+        val r = parser.parse("9 числа заполнить анкету", now)
+        assertEquals(LocalDateTime.of(2026, 6, 9, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("заполнить анкету", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun digitOrdinalDay_fifth_currentMonth() {
+        val may3Now = LocalDateTime.of(2026, 5, 3, 10, 0).atZone(zone).toInstant()
+        val r = parser.parse("5 числа оплатить", may3Now)
+        assertEquals(LocalDateTime.of(2026, 5, 5, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("оплатить", r.body)
+    }
+
+    @Test
+    fun digitOrdinalDay_thirtyFirst_withTime() {
+        val r = parser.parse("31 числа в 14:00 совещание", now)
+        assertEquals(LocalDateTime.of(2026, 5, 31, 14, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("совещание", r.body)
+    }
+
+    // --- Time with part-of-day prefix (7.1–7.3) ---
+
+    @Test
+    fun partPrefix_morningNine() {
+        val r = parser.parse("утром в 9 позвонить", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить", r.body)
+        assertTrue(!r.warnings.contains(ParseWarning.TIME_AMBIGUOUS))
+    }
+
+    @Test
+    fun partPrefix_eveningEight() {
+        val r = parser.parse("вечером в 8 фильм", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 20, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("фильм", r.body)
+    }
+
+    @Test
+    fun partPrefix_dayThree() {
+        val r = parser.parse("днём в 3 обед", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 15, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("обед", r.body)
+    }
 }

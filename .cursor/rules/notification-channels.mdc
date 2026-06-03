@@ -1,6 +1,6 @@
 ---
-trigger: always_on
 description: Каналы, AlarmManager, permissions, receivers для напоминаний
+alwaysApply: true
 ---
 
 # Notifications & Alarms

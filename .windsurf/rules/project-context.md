@@ -1,8 +1,6 @@
 ---
-title: VoiceMind Project Context
+trigger: always_on
 description: Базовый контекст проекта VoiceMind для Cascade
-globs: ["**/*"]
-alwaysApply: true
 ---
 
 # VoiceMind — голосовая напоминалка
@@ -59,6 +57,7 @@ alwaysApply: true
 - `ui-theme-rules.md` — CLEAR BELL, токены, экраны.
 - `speech-recognition.md` — STT, fallback, timeout.
 - `testing-rules.md` — unit / instrumented / manual тесты.
+- `openspec-language.md` — язык openspec-артефактов (русский).
 
 ## Секреты
 - `OPENROUTER_API_KEY` — только fallback-парсер (фаза 5), хранить в `local.properties` → `BuildConfig`.

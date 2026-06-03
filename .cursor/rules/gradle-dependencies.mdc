@@ -1,7 +1,7 @@
 ---
-trigger: glob
 description: Контроль зависимостей и версий
 globs: ["**/build.gradle.kts", "**/libs.versions.toml"]
+alwaysApply: false
 ---
 
 # Gradle & Dependencies

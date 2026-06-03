@@ -1,6 +1,6 @@
 ---
-trigger: always_on
 description: Запреты и must-have архитектуры VoiceMind
+alwaysApply: true
 ---
 
 # Architecture Guardrails
