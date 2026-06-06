@@ -381,7 +381,7 @@ private fun UpcomingReminderCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(Spacing.sm))
+                Spacer(modifier = Modifier.width(Spacing.md))
 
                 // Delivery icon
                 val deliveryIcon = when (reminder.deliveryMode) {

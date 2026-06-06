@@ -47,6 +47,13 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     val useVibration = settings.useVibration.first()
                     AlarmSoundPlayer.play(context, customUri, volume, useVibration)
                 } else if (deliveryMode == DeliveryMode.VIBRATE) {
+                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                    wakeLock = powerManager.newWakeLock(
+                        PowerManager.PARTIAL_WAKE_LOCK,
+                        "VoiceMind:VibrateWakeLock",
+                    )
+                    wakeLock.acquire(5_000L)
+
                     AlarmSoundPlayer.playVibrationOnly(context)
                 }
 
