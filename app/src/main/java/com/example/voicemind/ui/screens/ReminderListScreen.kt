@@ -16,6 +16,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -149,6 +150,7 @@ fun ReminderListScreen(
                     .weight(1f)
                     .padding(horizontal = Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                contentPadding = PaddingValues(bottom = Spacing.md),
             ) {
                 grouped.forEach { (header, items) ->
                     if (selectedTab == ReminderListTab.Upcoming && header.isNotEmpty()) {
@@ -267,18 +269,24 @@ private fun SwipeableUpcomingCard(
         enableDismissFromStartToEnd = false,
         modifier = modifier,
         backgroundContent = {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = Spacing.md),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+                    .background(MaterialTheme.colorScheme.errorContainer),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.list_cancel),
-                    tint = MaterialTheme.colorScheme.error,
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = Spacing.md),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.list_cancel),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         },
     ) {
@@ -416,7 +424,10 @@ private fun UpcomingReminderCard(
                 Spacer(modifier = Modifier.width(Spacing.sm))
 
                 // Delivery icon + checkbox
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(vertical = Spacing.xs),
+                ) {
                     val deliveryIcon = when (reminder.deliveryMode) {
                         DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications to Teal
                         DeliveryMode.ALARM.name -> Icons.Default.Alarm to TimeWarning
@@ -429,7 +440,7 @@ private fun UpcomingReminderCard(
                         tint = deliveryIcon.second,
                         modifier = Modifier.size(ComponentSize.iconMd),
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Spacing.sm))
                     Checkbox(
                         checked = false,
                         onCheckedChange = { if (it) onComplete() },
