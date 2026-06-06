@@ -66,13 +66,19 @@ class ReminderNotifier(private val context: Context) {
                 ReminderIntents.actionIntent(context, reminder.id, ReminderIntents.ACTION_CANCEL),
             )
 
-        if (deliveryMode == DeliveryMode.ALARM) {
+        if (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE) {
             builder.setCategory(NotificationCompat.CATEGORY_ALARM)
             builder.setPriority(NotificationCompat.PRIORITY_MAX)
             builder.setSilent(true)
             builder.setDefaults(0)
             builder.setSound(null)
-            if (useVibration) {
+
+            val shouldVibrate = when (deliveryMode) {
+                DeliveryMode.ALARM -> useVibration
+                DeliveryMode.VIBRATE -> true
+                else -> false
+            }
+            if (shouldVibrate) {
                 builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
             } else {
                 builder.setVibrate(null)
@@ -97,9 +103,6 @@ class ReminderNotifier(private val context: Context) {
             } else {
                 builder.setVibrate(null)
             }
-        } else if (deliveryMode == DeliveryMode.VIBRATE) {
-            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
         } else {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }

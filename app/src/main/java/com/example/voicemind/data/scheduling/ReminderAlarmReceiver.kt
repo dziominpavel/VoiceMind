@@ -31,7 +31,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 }
 
                 val deliveryMode = DeliveryMode.valueOf(reminder.deliveryMode)
-                if (deliveryMode == DeliveryMode.ALARM) {
+                if (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE) {
                     val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
                     wakeLock = powerManager.newWakeLock(
                         PowerManager.FULL_WAKE_LOCK or
@@ -40,20 +40,15 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                         "VoiceMind:AlarmWakeLock",
                     )
                     wakeLock.acquire(10_000L)
+                }
 
+                if (deliveryMode == DeliveryMode.ALARM) {
                     val settings = SettingsRepository.getInstance(context)
                     val customUri = settings.alarmRingtoneUri.first()
                     val volume = settings.alarmVolume.first()
                     val useVibration = settings.useVibration.first()
                     AlarmSoundPlayer.play(context, customUri, volume, useVibration)
                 } else if (deliveryMode == DeliveryMode.VIBRATE) {
-                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-                    wakeLock = powerManager.newWakeLock(
-                        PowerManager.PARTIAL_WAKE_LOCK,
-                        "VoiceMind:VibrateWakeLock",
-                    )
-                    wakeLock.acquire(5_000L)
-
                     AlarmSoundPlayer.playVibrationOnly(context)
                 }
 
