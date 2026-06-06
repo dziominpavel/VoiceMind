@@ -40,6 +40,7 @@
     <string name="detail_snooze_1h">+1 час</string>
     <string name="detail_duplicate">Повторить</string>
     <string name="detail_cancel">Отменить</string>
+    <string name="detail_done">Готово</string>
 
     <string name="manual_create_title">Новое напоминание</string>
     <string name="manual_edit_title">Редактировать</string>

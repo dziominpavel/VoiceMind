@@ -48,6 +48,16 @@ object FormatUtils {
         return Instant.ofEpochMilli(epochMillis).atZone(zone).format(formatter)
     }
 
+    fun formatRelativeDateShort(
+        epochMillis: Long,
+        nowMillis: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val diff = epochMillis - nowMillis
+        if (diff < 0) return "просрочено"
+        return formatShortDate(epochMillis, nowMillis, zone)
+    }
+
     fun formatShortDate(
         epochMillis: Long,
         nowMillis: Long = System.currentTimeMillis(),

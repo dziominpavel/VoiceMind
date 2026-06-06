@@ -362,6 +362,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     onEdit = { viewModel.openReminderForEdit(reminder.id) },
                     onDelete = { viewModel.deleteReminder(reminder.id) },
                     onCancel = { viewModel.cancelReminder(reminder.id) },
+                    onComplete = { viewModel.completeReminder(reminder.id) },
                     onSnooze = { minutes -> viewModel.snoozeReminder(reminder.id, minutes) },
                     onDuplicate = { viewModel.duplicateReminder(reminder) },
                 )
