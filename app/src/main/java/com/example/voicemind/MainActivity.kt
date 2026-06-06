@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,10 +39,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.voicemind.data.speech.SpeechRecognition
 import com.example.voicemind.ui.screens.ConfirmReminderScreen
+import com.example.voicemind.ui.screens.HomeScreen
 import com.example.voicemind.ui.screens.ManualReminderScreen
 import com.example.voicemind.ui.screens.ReminderDetailScreen
 import com.example.voicemind.ui.screens.ReminderListScreen
@@ -136,6 +139,10 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
         ActivityResultContracts.RequestPermission(),
     ) { }
 
+    val fullScreenIntentPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+
     val systemSpeechLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { result ->
@@ -209,7 +216,8 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             detailReminder != null -> viewModel.dismissDetail()
             manualDraft != null -> viewModel.dismissManual()
             pendingConfirm != null -> viewModel.dismissConfirm()
-            currentDestination == AppDestinations.SETTINGS -> currentDestination = AppDestinations.LIST
+            currentDestination == AppDestinations.SETTINGS -> currentDestination = AppDestinations.HOME
+            currentDestination == AppDestinations.LIST -> currentDestination = AppDestinations.HOME
             else -> activity?.finish()
         }
     }
@@ -217,6 +225,20 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(bottom = 80.dp),
+                ) { data ->
+                    androidx.compose.material3.Snackbar(
+                        snackbarData = data,
+                        shape = MaterialTheme.shapes.medium,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        actionColor = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            },
         ) { innerPadding ->
             NavigationSuiteScaffold(
                 modifier = Modifier
@@ -239,6 +261,19 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                 },
             ) {
                 when (currentDestination) {
+                    AppDestinations.HOME -> HomeScreen(
+                        nextReminder = upcomingReminders.firstOrNull(),
+                        upcomingReminders = upcomingReminders,
+                        onMicClick = { startVoiceInput() },
+                        onManualCreateClick = { viewModel.openManualCreate() },
+                        onNextReminderClick = {
+                            upcomingReminders.firstOrNull()?.let {
+                                viewModel.openReminderForEdit(it.id)
+                            }
+                        },
+                        onViewAllClick = { currentDestination = AppDestinations.LIST },
+                        onUpcomingClick = { viewModel.openReminderForEdit(it) },
+                    )
                     AppDestinations.LIST -> ReminderListScreen(
                         selectedTab = listTab,
                         onTabSelected = { viewModel.setListTab(it) },
@@ -270,6 +305,11 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         onSelectRingtone = { launchRingtonePicker() },
                         onRequestNotificationPermission = {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        },
+                        onRequestFullScreenIntentPermission = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                fullScreenIntentPermissionLauncher.launch(Manifest.permission.USE_FULL_SCREEN_INTENT)
+                            }
                         },
                         onDismissBehaviorChange = { viewModel.setDismissBehavior(it) },
                     )

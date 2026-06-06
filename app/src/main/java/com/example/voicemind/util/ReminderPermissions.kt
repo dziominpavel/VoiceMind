@@ -32,4 +32,15 @@ object ReminderPermissions {
             android.Manifest.permission.POST_NOTIFICATIONS,
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
+
+    fun needsUseFullScreenIntent(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+
+    fun hasUseFullScreenIntent(context: Context): Boolean {
+        if (!needsUseFullScreenIntent()) return true
+        return ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.USE_FULL_SCREEN_INTENT,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
 }

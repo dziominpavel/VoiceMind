@@ -1,6 +1,8 @@
 package com.example.voicemind.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,11 +39,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderStatus
+import com.example.voicemind.ui.theme.HapticType
+import com.example.voicemind.ui.theme.NeoWaveHaptics
+import com.example.voicemind.ui.theme.ShapePill
 import com.example.voicemind.ui.theme.Spacing
+import com.example.voicemind.ui.theme.SurfaceElevated
+import com.example.voicemind.ui.theme.Teal
+import com.example.voicemind.ui.theme.TextMuted
+import com.example.voicemind.ui.theme.TextPrimaryDark
+import com.example.voicemind.ui.theme.TimeCritical
+import com.example.voicemind.ui.theme.TimeSafe
+import com.example.voicemind.ui.theme.TimeWarning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +97,7 @@ fun ReminderDetailScreen(
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = stringResource(R.string.detail_delete),
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = TimeCritical,
                         )
                     }
                 },
@@ -101,13 +114,15 @@ fun ReminderDetailScreen(
                     ) {
                         FilledTonalButton(
                             onClick = onCancel,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = ShapePill,
                         ) {
                             Text(stringResource(R.string.detail_cancel))
                         }
                         Button(
                             onClick = { showSnoozeSheet = true },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = ShapePill,
                         ) {
                             Icon(Icons.Default.Snooze, contentDescription = null)
                             Spacer(modifier = Modifier.size(Spacing.xs))
@@ -122,10 +137,16 @@ fun ReminderDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(Spacing.md)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
+            // Status badge
+            StatusBadge(status = reminder.status)
+
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            // Info rows
             DetailRow(
                 label = stringResource(R.string.detail_status_label),
                 value = FormatUtils.statusLabel(reminder.status),
@@ -148,7 +169,8 @@ fun ReminderDetailScreen(
             Spacer(modifier = Modifier.height(Spacing.md))
             FilledTonalButton(
                 onClick = onDuplicate,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = ShapePill,
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = null)
                 Spacer(modifier = Modifier.size(Spacing.xs))
@@ -163,15 +185,17 @@ fun ReminderDetailScreen(
             title = { Text(stringResource(R.string.detail_delete_confirm_title)) },
             text = { Text(stringResource(R.string.detail_delete_confirm_text)) },
             confirmButton = {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
+                        NeoWaveHaptics.perform(context, HapticType.Heavy)
                         onDelete()
                     },
                 ) {
                     Text(
                         stringResource(R.string.detail_delete),
-                        color = MaterialTheme.colorScheme.error,
+                        color = TimeCritical,
                     )
                 }
             },
@@ -190,7 +214,7 @@ fun ReminderDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(Spacing.md),
+                    .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 Text(
@@ -212,24 +236,61 @@ fun ReminderDetailScreen(
                             60 -> stringResource(R.string.detail_snooze_1h)
                             else -> "+$minutes мин"
                         }
-                        Text(label)
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
-                Spacer(modifier = Modifier.height(Spacing.lg))
             }
         }
     }
 }
 
 @Composable
-private fun DetailRow(label: String, value: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Text(
-        text = value,
-        style = MaterialTheme.typography.bodyLarge,
-    )
+private fun StatusBadge(status: String) {
+    val info = when (status) {
+        ReminderStatus.PENDING.name -> Triple(TimeSafe.copy(alpha = 0.15f), TimeSafe, "Ожидает")
+        ReminderStatus.TRIGGERED.name -> Triple(TimeWarning.copy(alpha = 0.15f), TimeWarning, "Сработало")
+        ReminderStatus.DONE.name -> Triple(Teal.copy(alpha = 0.15f), Teal, "Выполнено")
+        ReminderStatus.CANCELLED.name -> Triple(TextMuted.copy(alpha = 0.15f), TextMuted, "Отменено")
+        else -> Triple(SurfaceElevated, TextPrimaryDark, status)
+    }
+    val (bgColor, textColor, label) = info
+
+    Box(
+        modifier = Modifier
+            .background(bgColor, shape = ShapePill)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = textColor,
+        )
+    }
+}
+
+@Composable
+private fun DetailRow(
+    label: String,
+    value: String,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = TextMuted,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = TextPrimaryDark,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(TextMuted.copy(alpha = 0.15f)),
+        )
+    }
 }

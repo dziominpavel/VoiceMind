@@ -6,6 +6,6 @@ import org.junit.Test
 class ExampleUnitTest {
     @Test
     fun appDestinationsCount() {
-        assertEquals(2, AppDestinations.entries.size)
+        assertEquals(3, AppDestinations.entries.size)
     }
 }

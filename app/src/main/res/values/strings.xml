@@ -21,6 +21,11 @@
     <string name="list_empty_subtitle">Создайте напоминание голосом или текстом</string>
     <string name="home_next_title">Ближайшее</string>
     <string name="home_next_in">через %1$s</string>
+    <string name="home_empty_title">Скажите первое напоминание</string>
+    <string name="home_empty_subtitle">Например: «Завтра в девять позвонить маме»</string>
+    <string name="home_empty_action">Создать</string>
+    <string name="home_upcoming_section">Ближайшие</string>
+    <string name="home_view_all">Все напоминания →</string>
 
     <string name="detail_title">Напоминание</string>
     <string name="detail_status_label">Статус</string>
@@ -47,6 +52,8 @@
     <string name="settings_exact_alarm_granted">Точные будильники: разрешены</string>
     <string name="settings_exact_alarm_denied">Точные будильники: нужно разрешение в настройках</string>
     <string name="settings_open_exact_alarm">Открыть настройки будильников</string>
+    <string name="settings_full_screen_intent_granted">Полноэкранные уведомления: разрешены</string>
+    <string name="settings_full_screen_intent_denied">Полноэкранные уведомления: нужно разрешение</string>
     <string name="settings_defaults_title">Поведение</string>
     <string name="settings_notifications_title">Оповещения</string>
     <string name="settings_use_alarm_sound">Звук будильника</string>
@@ -83,6 +90,10 @@
     <string name="notification_action_done">Готово</string>
     <string name="notification_action_snooze">+10 мин</string>
     <string name="notification_action_cancel">Отменить</string>
+
+    <string name="alarm_screen_done">Готово</string>
+    <string name="alarm_screen_snooze">Отложить 10 мин</string>
+    <string name="alarm_screen_cancel">Отменить</string>
 
     <string name="error_empty_phrase">Введите текст напоминания</string>
     <string name="error_no_time">Укажите дату и время</string>
