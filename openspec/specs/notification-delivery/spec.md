@@ -34,15 +34,18 @@
 - **AND** в центре экрана отображается `body` напоминания крупным шрифтом с кнопками действий
 
 ### Requirement: Режим оповещения VIBRATE
-При deliveryMode VIBRATE система ДОЛЖНА показывать уведомление без звука через канал reminders_vibrate. Вибрация управляется явно через Vibrator с повторяющимся паттерном.
+При deliveryMode VIBRATE система ДОЛЖНА активировать те же слои доставки, что и ALARM, за исключением звукового сигнала: (1) `FULL_WAKE_LOCK` с `ACQUIRE_CAUSES_WAKEUP` для включения экрана; (2) `AlarmActivity` через full-screen intent поверх экрана блокировки; (3) повторяющийся паттерн вибрации через `AlarmSoundPlayer`; (4) беззвучное anchor-уведомление в шторке.
 
-#### Scenario: Только вибрация
+#### Scenario: Вибрация как будильник без звука
 - **WHEN** напоминание с режимом VIBRATE срабатывает
-- **THEN** система ДОЛЖНА захватить `PARTIAL_WAKE_LOCK` на 5 секунд, чтобы Vibrator успел отработать при выключенном экране
-- **AND** уведомление показывается без звука через канал reminders_vibrate
-- **AND** уведомление ДОЛЖНО содержать паттерн вибрации `DEFAULT_VIBRATE_PATTERN`
-- **AND** воспроизводится повторяющийся паттерн вибрации через `AlarmSoundPlayer`
+- **THEN** система включает экран, если он выключен (`FULL_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP | ON_AFTER_RELEASE`)
+- **AND** запускается full-screen intent (`AlarmActivity`) поверх экрана блокировки
+- **AND** `AlarmSoundPlayer.playVibrationOnly()` воспроизводит повторяющийся паттерн вибрации
 - **AND** звук не воспроизводится
+- **AND** показывается высокоприоритетное anchor-уведомление с bypass DND
+- **AND** уведомление ДОЛЖНО содержать паттерн вибрации `DEFAULT_VIBRATE_PATTERN`
+- **AND** уведомление НЕ ДОЛЖНО содержать собственного звука (`setSilent(true)`, `setSound(null)`)
+- **AND** в центре экрана отображается `body` напоминания крупным шрифтом с кнопками действий
 
 ### Requirement: Режим оповещения NOTIFICATION
 При deliveryMode NOTIFICATION система ДОЛЖНА показывать обычное уведомление через канал reminders_default с importance HIGH. Вибрация в уведомлении добавляется только если глобальная настройка `useVibration` включена.
