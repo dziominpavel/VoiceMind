@@ -25,10 +25,6 @@ openspec/specs/
 │   └── spec.md          ← STT, fallback, timeout
 ├── notification-delivery/
 │   └── spec.md          ← режимы, каналы, actions
-├── reminder-scheduling/
-│   └── spec.md          ← AlarmManager, BootReceiver, reschedule
-├── settings/
-│   └── spec.md          ← DataStore, defaultMode, confirmBeforeSchedule
 └── ui-screens/
     └── spec.md          ← экраны, навигация, оверлеи
 ```

@@ -30,9 +30,8 @@ alwaysApply: true
 1. `docs/PROJECT_OVERVIEW.md` — продукт и сценарии.
 2. `docs/FEATURE_PLAN.md` — фазы разработки.
 3. `docs/REMINDER_PARSING.md` — парсинг времени.
-4. `docs/NOTIFICATION_MODES.md` — режимы оповещения.
-5. `docs/ARCHITECTURE.md` — архитектура.
-6. `docs/DESIGN_SYSTEM.md` — токены CLEAR BELL (свои, не GymProgress).
+4. `docs/ARCHITECTURE.md` — архитектура.
+5. `docs/DESIGN_SYSTEM.md` — токены CLEAR BELL (свои, не GymProgress).
 
 ## Сортировка
 - Предстоящие: `fireAt ASC, id ASC`
@@ -49,15 +48,15 @@ alwaysApply: true
 - `ui/theme/` — `Color.kt`, `Theme.kt`, `Dimens.kt` (CLEAR BELL).
 
 ## Специализированные rules (читать при работе с модулем)
-- `kotlin-compose-style.md` — Kotlin / Compose / Room.
-- `architecture-guardrails.md` — запреты и must-have.
-- `notification-channels.md` — AlarmManager, каналы, permissions, receivers.
-- `parser-rules.md` — `ReminderParser`, confidence, warnings, тесты.
-- `datastore-settings.md` — DataStore ключи и default values.
-- `ui-theme-rules.md` — CLEAR BELL, токены, экраны.
-- `speech-recognition.md` — STT, fallback, timeout.
-- `testing-rules.md` — unit / instrumented / manual тесты.
-- `openspec-language.md` — язык openspec-артефактов (русский).
+- `kotlin-compose-style.mdc` — Kotlin / Compose / Room.
+- `architecture-guardrails.mdc` — запреты и must-have.
+- `notification-channels.mdc` — AlarmManager, каналы, permissions, receivers.
+- `parser-rules.mdc` — `ReminderParser`, confidence, warnings, тесты.
+- `datastore-settings.mdc` — DataStore ключи и default values.
+- `ui-theme-rules.mdc` — CLEAR BELL, токены, экраны.
+- `speech-recognition.mdc` — STT, fallback, timeout.
+- `testing-rules.mdc` — unit / instrumented / manual тесты.
+- `openspec-language.mdc` — язык openspec-артефактов (русский).
 
 ## Секреты
 - `OPENROUTER_API_KEY` — только fallback-парсер (фаза 5), хранить в `local.properties` → `BuildConfig`.

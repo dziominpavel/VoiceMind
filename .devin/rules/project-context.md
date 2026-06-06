@@ -30,9 +30,8 @@ description: Базовый контекст проекта VoiceMind для Cas
 1. `docs/PROJECT_OVERVIEW.md` — продукт и сценарии.
 2. `docs/FEATURE_PLAN.md` — фазы разработки.
 3. `docs/REMINDER_PARSING.md` — парсинг времени.
-4. `docs/NOTIFICATION_MODES.md` — режимы оповещения.
-5. `docs/ARCHITECTURE.md` — архитектура.
-6. `docs/DESIGN_SYSTEM.md` — токены CLEAR BELL (свои, не GymProgress).
+4. `docs/ARCHITECTURE.md` — архитектура.
+5. `docs/DESIGN_SYSTEM.md` — токены CLEAR BELL (свои, не GymProgress).
 
 ## Сортировка
 - Предстоящие: `fireAt ASC, id ASC`

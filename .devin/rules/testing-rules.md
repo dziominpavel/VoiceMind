@@ -24,7 +24,7 @@ globs: ["**/test/**", "**/androidTest/**", "**/*Test.kt"]
 
 ## Стиль
 - Именование: `methodName_condition_expected()`.
-- Парсер: 38+ кейсов, edge (полночь, полдень, «через полчаса»).
+- Парсер: 55+ кейсов, edge (полночь, полдень, «через полчаса»).
 - Не использовать `Thread.sleep()` в unit-тестах.
 
 ## Запуск
@@ -34,9 +34,9 @@ globs: ["**/test/**", "**/androidTest/**", "**/*Test.kt"]
 
 **Windows (PowerShell / Cascade):**
 ```powershell
-cmd /c "cd /d C:\projects\VoiceMind && gradlew.bat :app:testDebugUnitTest --no-daemon"
+Start-Process -FilePath "C:\projects\VoiceMind\gradlew.bat" -ArgumentList ":app:testDebugUnitTest", "--no-daemon" -WorkingDirectory "C:\projects\VoiceMind" -Wait -NoNewWindow
 # Фильтр по классу:
-cmd /c "cd /d C:\projects\VoiceMind && gradlew.bat :app:testDebugUnitTest --tests \"com.example.voicemind.data.parse.ReminderParserTest\" --no-daemon"
+Start-Process -FilePath "C:\projects\VoiceMind\gradlew.bat" -ArgumentList ":app:testDebugUnitTest", "--tests", "com.example.voicemind.data.parse.ReminderParserTest", "--no-daemon" -WorkingDirectory "C:\projects\VoiceMind" -Wait -NoNewWindow
 ```
 
 **macOS / Linux:**
@@ -46,9 +46,8 @@ cmd /c "cd /d C:\projects\VoiceMind && gradlew.bat :app:testDebugUnitTest --test
 ```
 
 **Важно:**
-- Всегда использовать **абсолютный путь** к `gradlew.bat` или `cmd /c "cd /d ..."` — иначе PowerShell не находит батник.
+- Использовать `Start-Process` с `-WorkingDirectory` — PowerShell некорректно интерпретирует двоеточие в `:app:testDebugUnitTest` при прямом вызове.
 - `--no-daemon` — в окружении Cascade daemon падает по I/O таймауту.
-- Не использовать `\./gradlew.bat` напрямую в PowerShell — распознаётся как термин не найден.
 
 ### Instrumented
 - `./gradlew connectedAndroidTest` — эмулятор/девайс.
