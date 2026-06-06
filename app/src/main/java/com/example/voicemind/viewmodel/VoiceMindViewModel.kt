@@ -72,7 +72,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
     val defaultDeliveryMode = settings.defaultDeliveryMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeliveryMode.NOTIFICATION)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeliveryMode.ALARM)
 
     val useVibration = settings.useVibration
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)

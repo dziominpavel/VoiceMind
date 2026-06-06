@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">VoiceMind</string>
     <string name="widget_mic_label">VoiceMind Микрофон</string>
     <string name="widget_list_label">VoiceMind Напоминания</string>
@@ -70,6 +70,8 @@
     <string name="settings_delivery_mode_title">Режим по умолчанию</string>
     <string name="settings_mode_alarm">Будильник</string>
     <string name="settings_mode_alarm_hint">Громкий звонок и вибрация</string>
+    <string name="settings_mode_alarm_no_vibrate">Будильник без вибрации</string>
+    <string name="settings_mode_alarm_no_vibrate_hint">Громкий звонок, без вибрации</string>
     <string name="settings_mode_notification">Уведомление</string>
     <string name="settings_mode_notification_hint">Стандартное push-уведомление</string>
     <string name="settings_mode_vibrate">Вибрация</string>

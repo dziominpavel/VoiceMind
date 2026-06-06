@@ -35,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -92,67 +91,55 @@ fun SettingsScreen(
     ) {
         // Default Delivery Mode Card
         SettingsCard(title = stringResource(R.string.settings_delivery_mode_title)) {
+            // 1. Будильник (ALARM + vibrate)
             DeliveryModeOption(
-                mode = DeliveryMode.ALARM,
                 title = stringResource(R.string.settings_mode_alarm),
                 subtitle = stringResource(R.string.settings_mode_alarm_hint),
                 icon = Icons.Default.Alarm,
-                selected = defaultDeliveryMode == DeliveryMode.ALARM,
-                onClick = { onDefaultDeliveryModeChange(DeliveryMode.ALARM) },
+                selected = defaultDeliveryMode == DeliveryMode.ALARM && useVibration,
+                onClick = {
+                    onDefaultDeliveryModeChange(DeliveryMode.ALARM)
+                    onUseVibrationChange(true)
+                },
             )
+            // 2. Будильник без вибрации (ALARM, no vibrate)
             DeliveryModeOption(
-                mode = DeliveryMode.NOTIFICATION,
-                title = stringResource(R.string.settings_mode_notification),
-                subtitle = stringResource(R.string.settings_mode_notification_hint),
-                icon = Icons.Default.Notifications,
-                selected = defaultDeliveryMode == DeliveryMode.NOTIFICATION,
-                onClick = { onDefaultDeliveryModeChange(DeliveryMode.NOTIFICATION) },
+                title = stringResource(R.string.settings_mode_alarm_no_vibrate),
+                subtitle = stringResource(R.string.settings_mode_alarm_no_vibrate_hint),
+                icon = Icons.Default.Alarm,
+                selected = defaultDeliveryMode == DeliveryMode.ALARM && !useVibration,
+                onClick = {
+                    onDefaultDeliveryModeChange(DeliveryMode.ALARM)
+                    onUseVibrationChange(false)
+                },
             )
+            // 3. Вибрация
             DeliveryModeOption(
-                mode = DeliveryMode.VIBRATE,
                 title = stringResource(R.string.settings_mode_vibrate),
                 subtitle = stringResource(R.string.settings_mode_vibrate_hint),
                 icon = Icons.Default.Vibration,
                 selected = defaultDeliveryMode == DeliveryMode.VIBRATE,
                 onClick = { onDefaultDeliveryModeChange(DeliveryMode.VIBRATE) },
             )
+            // 4. Уведомление
             DeliveryModeOption(
-                mode = DeliveryMode.SILENT,
+                title = stringResource(R.string.settings_mode_notification),
+                subtitle = stringResource(R.string.settings_mode_notification_hint),
+                icon = Icons.Default.Notifications,
+                selected = defaultDeliveryMode == DeliveryMode.NOTIFICATION,
+                onClick = { onDefaultDeliveryModeChange(DeliveryMode.NOTIFICATION) },
+            )
+            // 5. Тихий
+            DeliveryModeOption(
                 title = stringResource(R.string.settings_mode_silent),
                 subtitle = stringResource(R.string.settings_mode_silent_hint),
                 icon = Icons.Default.NotificationsOff,
                 selected = defaultDeliveryMode == DeliveryMode.SILENT,
                 onClick = { onDefaultDeliveryModeChange(DeliveryMode.SILENT) },
             )
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Vibration toggle (separate from mode selection)
-            val isVibrateMode = defaultDeliveryMode == DeliveryMode.VIBRATE
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_use_vibration),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_use_vibration_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                    )
-                }
-                Switch(
-                    checked = if (isVibrateMode) true else useVibration,
-                    onCheckedChange = onUseVibrationChange,
-                    enabled = !isVibrateMode,
-                )
-            }
         }
 
-        // Alarm-specific settings (only visible when ALARM selected)
+        // Alarm-specific settings (visible for both ALARM variants)
         AnimatedVisibility(
             visible = defaultDeliveryMode == DeliveryMode.ALARM,
             enter = expandVertically() + fadeIn(),
@@ -205,7 +192,7 @@ fun SettingsScreen(
                         color = TextMuted,
                     )
                 }
-                Switch(
+                androidx.compose.material3.Switch(
                     checked = confirmBeforeSchedule,
                     onCheckedChange = {
                         NeoWaveHaptics.perform(context, HapticType.Toggle)
@@ -290,7 +277,6 @@ private fun SettingsCard(
 
 @Composable
 private fun DeliveryModeOption(
-    mode: DeliveryMode,
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -298,12 +284,11 @@ private fun DeliveryModeOption(
     onClick: () -> Unit,
 ) {
     val bgColor = if (selected) Teal.copy(alpha = 0.08f) else SurfaceElevated
-    val borderColor = if (selected) Teal else TextMuted.copy(alpha = 0.2f)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = Spacing.xs)
+            .padding(vertical = 4.dp)
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = bgColor),
@@ -311,16 +296,16 @@ private fun DeliveryModeOption(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.md),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (selected) Teal else TextMuted,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
             )
-            Spacer(modifier = Modifier.width(Spacing.md))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -329,7 +314,7 @@ private fun DeliveryModeOption(
                 )
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = if (selected) Teal else TextMuted,
                 )
             }
