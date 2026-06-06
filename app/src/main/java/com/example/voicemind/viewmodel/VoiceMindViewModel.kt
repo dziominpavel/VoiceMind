@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.voicemind.R
+import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.DismissBehavior
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderRepository
@@ -70,11 +71,8 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     val confirmBeforeSchedule = settings.confirmBeforeSchedule
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
-    val useAlarmSound = settings.useAlarmSound
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-    val usePushNotification = settings.usePushNotification
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+    val defaultDeliveryMode = settings.defaultDeliveryMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeliveryMode.NOTIFICATION)
 
     val useVibration = settings.useVibration
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
@@ -147,15 +145,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun setUseAlarmSound(enabled: Boolean) {
+    fun setDefaultDeliveryMode(mode: DeliveryMode) {
         viewModelScope.launch {
-            settings.setUseAlarmSound(enabled)
-        }
-    }
-
-    fun setUsePushNotification(enabled: Boolean) {
-        viewModelScope.launch {
-            settings.setUsePushNotification(enabled)
+            settings.setDefaultDeliveryMode(mode)
         }
     }
 
@@ -185,9 +177,13 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Ручной режим: пустая форма с датой/временем по умолчанию. */
     fun openManualCreate() {
-        _manualDraft.value = ManualReminderDraft(
-            fireAtMillis = defaultFireAtMillis(),
-        )
+        viewModelScope.launch {
+            val mode = settings.getDefaultDeliveryMode()
+            _manualDraft.value = ManualReminderDraft(
+                fireAtMillis = defaultFireAtMillis(),
+                deliveryMode = mode.name,
+            )
+        }
     }
 
     fun startListening() {
@@ -262,6 +258,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun saveManualReminder(
         body: String,
         fireAtMillis: Long?,
+        deliveryMode: String? = null,
     ) {
         val draft = _manualDraft.value ?: return
         saveReminder(
@@ -269,6 +266,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             fireAtMillis = fireAtMillis,
             rawPhrase = draft.rawPhrase,
             editingId = draft.editingReminderId,
+            deliveryMode = deliveryMode ?: draft.deliveryMode,
         ) { _manualDraft.value = null }
     }
 
@@ -401,6 +399,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         fireAtMillis: Long?,
         rawPhrase: String?,
         editingId: Long?,
+        deliveryMode: String? = null,
         onSuccess: () -> Unit,
     ) {
         val fireAt = fireAtMillis
@@ -433,7 +432,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             } else {
                 val now = System.currentTimeMillis()
-                val mode = settings.getDefaultDeliveryMode()
+                val mode = deliveryMode?.let { runCatching { DeliveryMode.valueOf(it) }.getOrNull() } ?: settings.getDefaultDeliveryMode()
                 repository.insertAndSchedule(
                     Reminder(
                         clientId = UUID.randomUUID().toString(),

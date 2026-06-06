@@ -226,7 +226,7 @@ private fun HeroCard(
                     val deliveryIcon = when (reminder.deliveryMode) {
                         DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications
                         DeliveryMode.ALARM.name -> Icons.Default.Notifications
-                        DeliveryMode.VIBRATE_ONLY.name -> Icons.Default.Notifications
+                        DeliveryMode.VIBRATE.name -> Icons.Default.Notifications
                         else -> Icons.Default.Notifications
                     }
                     Icon(
@@ -285,7 +285,7 @@ private fun UpcomingPreviewItem(
         val deliveryIcon = when (reminder.deliveryMode) {
             DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications
             DeliveryMode.ALARM.name -> Icons.Default.Notifications
-            DeliveryMode.VIBRATE_ONLY.name -> Icons.Default.Notifications
+            DeliveryMode.VIBRATE.name -> Icons.Default.Notifications
             else -> Icons.Default.Notifications
         }
         Icon(

@@ -387,7 +387,7 @@ private fun UpcomingReminderCard(
                 val deliveryIcon = when (reminder.deliveryMode) {
                     DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications to Teal
                     DeliveryMode.ALARM.name -> Icons.Default.Alarm to TimeWarning
-                    DeliveryMode.VIBRATE_ONLY.name -> Icons.Default.Vibration to DeliveryVibrate
+                    DeliveryMode.VIBRATE.name -> Icons.Default.Vibration to DeliveryVibrate
                     else -> Icons.Default.NotificationsOff to TextMuted
                 }
                 Icon(
