@@ -64,6 +64,7 @@ fun ReminderDetailScreen(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onCancel: () -> Unit,
+    onComplete: () -> Unit,
     onSnooze: (minutes: Int) -> Unit,
     onDuplicate: () -> Unit,
     modifier: Modifier = Modifier,
@@ -118,6 +119,13 @@ fun ReminderDetailScreen(
                             shape = ShapePill,
                         ) {
                             Text(stringResource(R.string.detail_cancel))
+                        }
+                        Button(
+                            onClick = onComplete,
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = ShapePill,
+                        ) {
+                            Text(stringResource(R.string.detail_done))
                         }
                         Button(
                             onClick = { showSnoozeSheet = true },

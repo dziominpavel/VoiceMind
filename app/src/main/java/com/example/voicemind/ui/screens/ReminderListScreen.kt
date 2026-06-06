@@ -42,21 +42,19 @@ import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -71,6 +69,7 @@ import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.ui.components.EmptyState
+import com.example.voicemind.ui.components.SwipeToRevealBox
 import com.example.voicemind.ui.theme.BackgroundSecondary
 import com.example.voicemind.ui.theme.ComponentSize
 import com.example.voicemind.ui.theme.DeliveryVibrate
@@ -118,6 +117,8 @@ fun ReminderListScreen(
     } else {
         mapOf("" to reminders) // History: no grouping
     }
+
+    var revealedReminderId by remember { mutableStateOf<Long?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTab.ordinal) {
@@ -175,13 +176,23 @@ fun ReminderListScreen(
                             ),
                         )
                         when (selectedTab) {
-                            ReminderListTab.Upcoming -> SwipeableUpcomingCard(
-                                reminder = reminder,
+                            ReminderListTab.Upcoming -> SwipeToRevealBox(
+                                isRevealed = revealedReminderId == reminder.id,
+                                onRevealedChange = { revealed ->
+                                    revealedReminderId = if (revealed) reminder.id else null
+                                },
                                 onClick = { onUpcomingClick(reminder.id) },
-                                onCancel = { onCancel(reminder.id) },
-                                onComplete = { onComplete(reminder.id) },
+                                onAction = {
+                                    revealedReminderId = null
+                                    onCancel(reminder.id)
+                                },
                                 modifier = itemModifier,
-                            )
+                            ) {
+                                UpcomingReminderCard(
+                                    reminder = reminder,
+                                    onClick = { onUpcomingClick(reminder.id) },
+                                )
+                            }
                             ReminderListTab.History -> HistoryReminderCard(
                                 reminder = reminder,
                                 onClick = { onHistoryClick(reminder) },
@@ -244,65 +255,10 @@ private fun groupByDate(reminders: List<Reminder>): Map<String, List<Reminder>> 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SwipeableUpcomingCard(
-    reminder: Reminder,
-    onClick: () -> Unit,
-    onCancel: () -> Unit,
-    onComplete: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onCancel()
-                true
-            } else {
-                false
-            }
-        },
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        modifier = modifier,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = Spacing.md),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.list_cancel),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-        },
-    ) {
-        UpcomingReminderCard(
-            reminder = reminder,
-            onClick = onClick,
-            onComplete = onComplete,
-        )
-    }
-}
-
 @Composable
 private fun UpcomingReminderCard(
     reminder: Reminder,
     onClick: () -> Unit,
-    onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val now = System.currentTimeMillis()
@@ -396,15 +352,19 @@ private fun UpcomingReminderCard(
                             CardState.URGENT -> TimeWarning
                             else -> TextPrimaryDark
                         },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = FormatUtils.formatRelativeFireAt(reminder.fireAt),
+                        text = FormatUtils.formatRelativeDateShort(reminder.fireAt),
                         style = MaterialTheme.typography.labelMedium,
                         color = when (cardState) {
                             CardState.CRITICAL, CardState.OVERDUE -> TimeCritical
                             CardState.URGENT -> TimeWarning
                             else -> TextMuted
                         },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
 
@@ -423,30 +383,19 @@ private fun UpcomingReminderCard(
 
                 Spacer(modifier = Modifier.width(Spacing.sm))
 
-                // Delivery icon + checkbox
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(vertical = Spacing.xs),
-                ) {
-                    val deliveryIcon = when (reminder.deliveryMode) {
-                        DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications to Teal
-                        DeliveryMode.ALARM.name -> Icons.Default.Alarm to TimeWarning
-                        DeliveryMode.VIBRATE_ONLY.name -> Icons.Default.Vibration to DeliveryVibrate
-                        else -> Icons.Default.NotificationsOff to TextMuted
-                    }
-                    Icon(
-                        imageVector = deliveryIcon.first,
-                        contentDescription = null,
-                        tint = deliveryIcon.second,
-                        modifier = Modifier.size(ComponentSize.iconMd),
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    Checkbox(
-                        checked = false,
-                        onCheckedChange = { if (it) onComplete() },
-                        modifier = Modifier.size(32.dp),
-                    )
+                // Delivery icon
+                val deliveryIcon = when (reminder.deliveryMode) {
+                    DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications to Teal
+                    DeliveryMode.ALARM.name -> Icons.Default.Alarm to TimeWarning
+                    DeliveryMode.VIBRATE_ONLY.name -> Icons.Default.Vibration to DeliveryVibrate
+                    else -> Icons.Default.NotificationsOff to TextMuted
                 }
+                Icon(
+                    imageVector = deliveryIcon.first,
+                    contentDescription = null,
+                    tint = deliveryIcon.second,
+                    modifier = Modifier.size(ComponentSize.iconMd),
+                )
             }
         }
     }

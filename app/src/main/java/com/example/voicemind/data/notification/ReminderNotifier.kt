@@ -72,6 +72,11 @@ class ReminderNotifier(private val context: Context) {
             builder.setSilent(true)
             builder.setDefaults(0)
             builder.setSound(null)
+            if (useVibration) {
+                builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
+            } else {
+                builder.setVibrate(null)
+            }
 
             val fullScreenIntent = PendingIntent.getActivity(
                 context,
@@ -94,6 +99,7 @@ class ReminderNotifier(private val context: Context) {
             }
         } else if (deliveryMode == DeliveryMode.VIBRATE_ONLY) {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
         } else {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }
