@@ -34,7 +34,7 @@ class SettingsRepository(private val context: Context) {
     val defaultDeliveryMode: Flow<DeliveryMode> = context.settingsDataStore.data.map { prefs ->
         prefs[defaultDeliveryModeKey]?.let {
             runCatching { DeliveryMode.valueOf(it) }.getOrNull()
-        } ?: DeliveryMode.NOTIFICATION
+        } ?: DeliveryMode.ALARM
     }
 
     val useVibration: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -104,7 +104,7 @@ class SettingsRepository(private val context: Context) {
 
         // Check if already migrated
         prefs[defaultDeliveryModeKey]?.let {
-            return runCatching { DeliveryMode.valueOf(it) }.getOrNull() ?: DeliveryMode.NOTIFICATION
+            return runCatching { DeliveryMode.valueOf(it) }.getOrNull() ?: DeliveryMode.ALARM
         }
 
         // One-time migration from legacy keys
