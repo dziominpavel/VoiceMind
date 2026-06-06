@@ -28,6 +28,5 @@ globs: ["**/build.gradle.kts", "**/libs.versions.toml"]
 
 ## Правила
 - Версии централизованы в `gradle/libs.versions.toml`.
-- `version.properties` — major.minor.patch, авто-bump patch при assemble.
 - ProGuard: `isMinifyEnabled = true` в release.
 - Не поднимать `minSdk` без явной причины.

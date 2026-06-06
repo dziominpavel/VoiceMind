@@ -3,7 +3,6 @@ trigger: glob
 description: Язык openspec-артефактов — русский
 globs:
   - "openspec/**/*"
-  - ".windsurf/rules/*"
 ---
 
 # Язык openspec

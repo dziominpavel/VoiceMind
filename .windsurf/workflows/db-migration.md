@@ -2,21 +2,21 @@
 description: Добавление поля или таблицы в Room с миграцией
 ---
 
-# Миграция Room (VoiceMind)
+Добавление поля/таблицы в Room (без destructive migration):
 
-## Правило
-**Никаких destructive миграций в release.** Только additive.
-
-## Шаги
-1. Определить: новая таблица, новое поле, или индекс?
-2. Обновить entity-класс ( `@Entity` / `@ColumnInfo` ).
-3. Увеличить `version` в `@Database`.
-4. Написать `Migration(N, N+1)` — `addColumn` / `createTable`.
-5. Передать миграцию в `Room.databaseBuilder.addMigrations(...)`.
-6. Проверить `fallbackToDestructiveMigration()` — **не должно быть включено** в release.
-7. Написать instrumented test или хотя бы проверить установку поверх предыдущей версии.
-
-## Проверка
-- `Room.databaseBuilder(...)` без destructive fallback.
-- Миграция покрывает `N → N+1`.
-- DAO-запросы не сломаны (особенно `ORDER BY` поля).
+1. Изменить `@Entity` — добавить поле с `@ColumnInfo(defaultValue = "...")`.
+2. Увеличить `version` в `@Database(entities = [...], version = N)`.
+3. Создать `Migration_X_to_Y`:
+   ```kotlin
+   val MIGRATION_X_Y = object : Migration(X, Y) {
+       override fun migrate(db: SupportSQLiteDatabase) {
+           db.execSQL("ALTER TABLE reminders ADD COLUMN new_field INTEGER NOT NULL DEFAULT 0")
+       }
+   }
+   ```
+4. Добавить migration в `Room.databaseBuilder(...).addMigrations(MIGRATION_X_Y)`.
+5. Обновить `SettingsRepository` / `ViewModel`, если поле влияет на UI.
+6. **Запрещено** `fallbackToDestructiveMigration()` в release-сборке.
+// turbo
+7. Собрать debug (`:app:assembleDebug`) и проверить, что старая БД открывается без crash.
+8. (Опционально) Добавить instrumented-тест: создать БД версии X, применить миграцию, проверить чтение версии Y.

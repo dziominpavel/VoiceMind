@@ -2,31 +2,19 @@
 description: Самопроверка кода перед коммитом
 ---
 
-# Code Review Checklist (VoiceMind)
+Перед коммитом или PR проверь следующее:
 
-## Архитектура
-- [ ] Изменения затрагивают только нужные слои (data / domain / ui).
-- [ ] Нет дублирования `ReminderScheduler` — alarm только через него.
-- [ ] ViewModel один — `VoiceMindViewModel` или наследник.
-
-## Безопасность
-- [ ] Alarm не ставится без confirm (preview → save).
-- [ ] `canScheduleExactAlarms()` проверена (Android 12+).
-- [ ] `safeDb` обёртка на DB-операциях.
-
-## Качество
-- [ ] Нет `LiveData` — только `StateFlow`.
-- [ ] UI-тексты в `strings.xml` (русские).
-- [ ] Код на английском.
-- [ ] Логи не содержат `body` / `rawPhrase`.
-
-## Room
-- [ ] Если entity изменён — есть миграция (не destructive).
-- [ ] Версия БД увеличена.
-
-## Тесты
-- [ ] Парсер — unit-тест на новые кейсы.
-- [ ] Compose Preview есть для новых экранов.
-
-## Дизайн
-- [ ] Используется `VoiceMindTheme`, не цвета GymProgress.
+1. **Один ViewModel** — нет ли второго ViewModel на экране. Должен быть только `VoiceMindViewModel`.
+2. **Alarm scheduling** — все вызовы `AlarmManager` только через `ReminderScheduler.schedule()` / `cancel()` / `rescheduleAll()`.
+3. **Confirm перед schedule** — нет ли прямого сохранения напоминания без `ConfirmReminderScreen`.
+4. **Parser** — если менял `ReminderParser`, новый паттерн покрыт тестом (TDD).
+5. **Запуск тестов парсера**:
+// turbo
+   ```powershell
+   Start-Process -FilePath "gradlew.bat" -ArgumentList ":app:testDebugUnitTest", "--tests", "com.example.voicemind.data.parse.ReminderParserTest", "--no-daemon" -WorkingDirectory "." -Wait -NoNewWindow
+   ```
+6. **DB migration** — нет ли `fallbackToDestructiveMigration()` в release. Новое поле → migration класс + bump версии.
+7. **UI theme** — нет ли inline hex-цветов в `@Composable`. Только через `MaterialTheme.colorScheme` / `VoiceMindTheme.colors`.
+8. **Логи** — не печатаются ли `body` и `rawPhrase` в release-логах.
+9. **Ошибки** — DB/IO ошибки обёрнуты в `safeDb` и показаны через `Snackbar`.
+10. **Сортировка** — предстоящие `fireAt ASC`, история `fireAt DESC`.

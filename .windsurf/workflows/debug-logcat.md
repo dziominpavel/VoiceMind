@@ -1,31 +1,17 @@
 ---
 description: Захватить adb logcat и дать Cascade прочитать логи самостоятельно
 ---
-# /debug-logcat — отладка через logcat
 
-Контекст: у пользователя проблема в runtime (UI, alarm, парсер, уведомление и т.д.).
-Cascade не имеет прямого доступа к эмулятору/телефону, поэтому logcat пишется в файл.
+Снятие runtime-логов с устройства:
 
-## Шаги
-
-1. Проверить, что `logs/voicemind-logcat.txt` уже существует и свежий.
-   - Если да → сразу читать и анализировать.
-   - Если нет / устарел → предложить пользователю запустить скрипт (см. шаг 2).
-
-2. Предложить пользователю запустить в PowerShell (из корня проекта):
+1. Убедись, что adb доступен в PATH или по пути `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`.
+2. Подключи устройство / запусти эмулятор.
+3. Запусти скрипт захвата:
+// turbo
    ```powershell
-   .\scripts\capture-logcat.ps1 -DurationSec 15
+   .\scripts\capture-logcat.ps1 -DurationSec 15 -Lines 500
    ```
-   Или для быстрого дампа:
-   ```powershell
-   .\scripts\capture-logcat.ps1 -Lines 500
-   ```
-
-3. После завершения скрипта прочитать файл:
-   ```
-   logs/voicemind-logcat.txt
-   ```
-
-4. Проанализировать: искать `FATAL EXCEPTION`, `AndroidRuntime`, `Reminder`, `Alarm`, `Parser`, `VoiceMind`.
-
-5. Выдать диагноз или запросить дополнительные действия (например, воспроизвести баг ещё раз с `-ClearBuffer`).
+   - Параметры: `-DurationSec N` (ждать N сек), `-Lines M` (дамп последних M строк), `-ClearBuffer`.
+4. Прочитай результат из `logs/voicemind-logcat.txt`.
+5. Проанализируй логи: фильтр по `com.example.voicemind`, `ReminderScheduler`, `BootReceiver`, `ReminderAlarmReceiver`, `ReminderNotifier`.
+6. Если нашёл crash / ANR — проверь соответствие guardrails (alarm в `ReminderScheduler`, BootReceiver reschedule, exact alarm permission).
