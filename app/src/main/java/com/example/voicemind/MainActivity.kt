@@ -368,9 +368,5 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             }
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
-        )
     }
 }

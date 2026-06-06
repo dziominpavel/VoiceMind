@@ -19,9 +19,14 @@ object AlarmSoundPlayer {
     private val handler = Handler(Looper.getMainLooper())
     private var stopRunnable: Runnable? = null
     private const val AUTO_STOP_MS = 60_000L
-    private val VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500)
+    private val VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500, 200, 500)
 
-    fun play(context: Context, customUriString: String? = null, volumePercent: Int = 100) {
+    fun play(
+        context: Context,
+        customUriString: String? = null,
+        volumePercent: Int = 100,
+        withVibration: Boolean = true,
+    ) {
         stop(context)
         val alarmUri = customUriString?.let { Uri.parse(it) }
             ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
@@ -47,7 +52,9 @@ object AlarmSoundPlayer {
             play()
         }
 
-        startVibration(context)
+        if (withVibration) {
+            startVibration(context)
+        }
         scheduleAutoStop(context)
     }
 

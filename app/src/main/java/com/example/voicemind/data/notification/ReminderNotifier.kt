@@ -10,19 +10,23 @@ import com.example.voicemind.R
 import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
+import com.example.voicemind.data.SettingsRepository
 import com.example.voicemind.data.scheduling.ReminderIntents
 import com.example.voicemind.ui.screens.AlarmActivity
+import kotlinx.coroutines.flow.first
 
 class ReminderNotifier(private val context: Context) {
 
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    fun show(reminder: Reminder) {
+    suspend fun show(reminder: Reminder) {
         NotificationChannels.createAll(context)
 
         val deliveryMode = DeliveryMode.valueOf(reminder.deliveryMode)
         val channelId = NotificationChannels.channelId(deliveryMode)
+        val settings = SettingsRepository.getInstance(context)
+        val useVibration = settings.useVibration.first()
 
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -83,9 +87,13 @@ class ReminderNotifier(private val context: Context) {
             builder.setFullScreenIntent(fullScreenIntent, true)
         } else if (deliveryMode == DeliveryMode.NOTIFICATION) {
             builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+            if (useVibration) {
+                builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
+            } else {
+                builder.setVibrate(null)
+            }
         } else if (deliveryMode == DeliveryMode.VIBRATE_ONLY) {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
         } else {
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
         }

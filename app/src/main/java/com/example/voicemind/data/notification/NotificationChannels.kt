@@ -20,9 +20,10 @@ object NotificationChannels {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Удаляем старый канал, созданный в ранних версиях, чтобы система не кешировала
+        // Удаляем старые каналы, созданные в ранних версиях, чтобы система не кешировала
         // неправильные звук / вибрацию.
         nm.deleteNotificationChannel("reminders_default")
+        nm.deleteNotificationChannel(VIBRATE)
 
         // Канал "Как будильник" — без звука на канале (звук играет явно через AlarmSoundPlayer),
         // bypass DND, вибрация тоже явная
@@ -50,7 +51,8 @@ object NotificationChannels {
             vibrationPattern = DEFAULT_VIBRATE_PATTERN
         }
 
-        // Канал "Только вибрация" — без звука
+        // Канал "Только вибрация" — без звука и без встроенной вибрации
+        // (вибрация управляется явно через AlarmSoundPlayer / Vibrator API)
         val vibrateChannel = NotificationChannel(
             VIBRATE,
             "Только вибрация",
@@ -58,8 +60,7 @@ object NotificationChannels {
         ).apply {
             description = "Вибрация без звука"
             setSound(null, null)
-            enableVibration(true)
-            vibrationPattern = DEFAULT_VIBRATE_PATTERN
+            enableVibration(false)
         }
 
         // Канал "Тихое" — без звука и вибрации
