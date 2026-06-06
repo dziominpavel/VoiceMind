@@ -4,23 +4,22 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 
 val VoiceMindTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 56.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 40.sp,
+        lineHeight = 48.sp,
+        letterSpacing = (-0.2).sp,
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Bold,
-        fontSize = 44.sp,
-        lineHeight = 52.sp,
-        letterSpacing = (-0.2).sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.15).sp,
     ),
     displaySmall = TextStyle(
         fontFamily = FontFamily.Default,
@@ -32,15 +31,15 @@ val VoiceMindTypography = Typography(
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
         letterSpacing = (-0.1).sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
         letterSpacing = (-0.05).sp,
     ),
     headlineSmall = TextStyle(
@@ -53,15 +52,15 @@ val VoiceMindTypography = Typography(
     titleLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
+        fontSize = 20.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
+        fontSize = 18.sp,
+        lineHeight = 26.sp,
         letterSpacing = 0.15.sp,
     ),
     titleSmall = TextStyle(
@@ -119,3 +118,21 @@ val VoiceMindTypography = Typography(
 fun TextStyle.withTabularNums(): TextStyle = this.copy(
     fontFeatureSettings = "tnum"
 )
+
+// Special styles for NeoWave Voice
+
+/** Крупное время (Hero Card, Alarm Screen) */
+val TimeDisplay: TextStyle
+    get() = VoiceMindTypography.displayLarge.withTabularNums()
+
+/** Отсчёт времени до напоминания */
+val CountdownLabel: TextStyle
+    get() = VoiceMindTypography.labelLarge.copy(color = Teal)
+
+/** Текст напоминания в карточке */
+val ReminderBody: TextStyle
+    get() = VoiceMindTypography.bodyLarge
+
+/** Метаданные (дата создания, статус) */
+val Metadata: TextStyle
+    get() = VoiceMindTypography.labelMedium.copy(color = TextMuted)

@@ -11,6 +11,7 @@ import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.scheduling.ReminderIntents
+import com.example.voicemind.ui.screens.AlarmActivity
 
 class ReminderNotifier(private val context: Context) {
 
@@ -67,6 +68,19 @@ class ReminderNotifier(private val context: Context) {
             builder.setSilent(true)
             builder.setDefaults(0)
             builder.setSound(null)
+
+            val fullScreenIntent = PendingIntent.getActivity(
+                context,
+                reminder.id.notificationId(),
+                Intent(context, AlarmActivity::class.java).apply {
+                    putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminder.id)
+                    putExtra(AlarmActivity.EXTRA_REMINDER_BODY, reminder.body)
+                    putExtra(AlarmActivity.EXTRA_REMINDER_FIRE_AT, reminder.fireAt)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.setFullScreenIntent(fullScreenIntent, true)
         } else if (deliveryMode == DeliveryMode.NOTIFICATION) {
             builder.setPriority(NotificationCompat.PRIORITY_HIGH)
         } else if (deliveryMode == DeliveryMode.VIBRATE_ONLY) {

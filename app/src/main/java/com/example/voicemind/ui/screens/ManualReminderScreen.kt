@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -31,7 +32,11 @@ import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.ui.components.DateTimeField
 import com.example.voicemind.ui.components.WarningCard
+import com.example.voicemind.ui.theme.ComponentSize
+import com.example.voicemind.ui.theme.ShapePill
 import com.example.voicemind.ui.theme.Spacing
+import com.example.voicemind.ui.theme.TextMuted
+import com.example.voicemind.ui.theme.TimeDisplay
 import com.example.voicemind.viewmodel.ManualReminderDraft
 import java.time.Instant
 import java.time.LocalDate
@@ -88,7 +93,8 @@ fun ManualReminderScreen(
             BottomAppBar {
                 Button(
                     onClick = { onSave(body.trim(), fireAtMillis) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(ComponentSize.saveButtonHeight),
+                    shape = ShapePill,
                 ) {
                     Text(stringResource(R.string.confirm_save))
                 }
@@ -99,22 +105,33 @@ fun ManualReminderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(Spacing.md)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            WarningCard(messages = warningMessages)
+            // Time display
+            Text(
+                text = fireAtLabel,
+                style = TimeDisplay,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
 
+            // Warnings
+            if (warningMessages.isNotEmpty()) {
+                WarningCard(messages = warningMessages)
+            }
+
+            // Raw phrase (if from voice)
             draft.rawPhrase?.let { phrase ->
                 Text(
                     text = stringResource(R.string.confirm_phrase_label),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = TextMuted,
                 )
                 Text(
                     text = phrase,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = TextMuted,
                 )
             }
 
@@ -130,6 +147,7 @@ fun ManualReminderScreen(
                 label = { Text(stringResource(R.string.confirm_body_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
+                shape = MaterialTheme.shapes.medium,
             )
         }
     }

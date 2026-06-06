@@ -41,4 +41,9 @@ object FormatUtils {
         "CANCELLED" -> "Отменено"
         else -> status
     }
+
+    fun formatTime(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+        val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag("ru"))
+        return Instant.ofEpochMilli(epochMillis).atZone(zone).format(formatter)
+    }
 }
