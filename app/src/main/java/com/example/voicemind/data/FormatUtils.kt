@@ -3,6 +3,7 @@ package com.example.voicemind.data
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 object FormatUtils {
@@ -45,5 +46,24 @@ object FormatUtils {
     fun formatTime(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String {
         val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag("ru"))
         return Instant.ofEpochMilli(epochMillis).atZone(zone).format(formatter)
+    }
+
+    fun formatShortDate(
+        epochMillis: Long,
+        nowMillis: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val date = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
+        val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+        val daysDiff = ChronoUnit.DAYS.between(today, date)
+        return when (daysDiff) {
+            0L -> "сегодня"
+            1L -> "завтра"
+            2L -> "послезавтра"
+            else -> {
+                val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("ru"))
+                date.format(formatter)
+            }
+        }
     }
 }

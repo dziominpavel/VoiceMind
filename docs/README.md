@@ -11,11 +11,18 @@
 | **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** | Продукт, сценарии, модель данных, что добавить/убрать |
 | **[FEATURE_PLAN.md](FEATURE_PLAN.md)** | **План реализации по фазам** (оценки, критерии готовности) |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | Пакеты, ViewModel, scheduler, receivers |
-| **[REMINDER_PARSING.md](REMINDER_PARSING.md)** | Правила парсинга русских фраз, тесты |
 | **[NOTIFICATION_MODES.md](NOTIFICATION_MODES.md)** | Режимы оповещения и разрешения Android |
 | **[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** | UI «CLEAR BELL» (не GymProgress) |
 | **[UI_IMPROVEMENT_PLAN.md](UI_IMPROVEMENT_PLAN.md)** | План UI/UX-реворка (Home, формы, список, настройки) |
 | **[FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md)** | Дерево каталогов |
+
+**Формальные спецификации (BDD):** `../openspec/specs/`
+- `reminder-parsing/spec.md` — правила парсинга русских фраз, тесты
+- `ui-screens/spec.md` — требования к экранам
+- `speech-recognition/spec.md` — распознавание речи
+- `notification-delivery/spec.md` — уведомления и будильник
+- `alarm-screen-wake/spec.md` — экран пробуждения
+- `widget/spec.md` — виджет
 
 ## Принципы
 

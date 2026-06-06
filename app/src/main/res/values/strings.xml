@@ -71,8 +71,8 @@
     <string name="settings_dismiss_behavior_title">При смахивании напоминания</string>
     <string name="settings_dismiss_behavior_done">Пометить выполненным</string>
     <string name="settings_dismiss_behavior_snooze">Отложить на 15 минут</string>
-    <string name="settings_test_hint">Для проверки создайте напоминание на 2–3 минуты вперёд и сверните приложение.</string>
-    <string name="settings_version">Версия %1$s · %2$s</string>
+    <string name="settings_version">Версия %1$s</string>
+    <string name="settings_developer_label">Разработчик</string>
     <string name="settings_about_title">О приложении</string>
     <string name="settings_request_notifications">Разрешить уведомления</string>
 
@@ -108,18 +108,36 @@
     <string name="confirm_back">Назад</string>
     <string name="confirm_phrase_label">Исходная фраза</string>
     <string name="confirm_when_label">Когда</string>
+    <string name="confirm_body_label">Текст напоминания</string>
+    <string name="confirm_delivery_mode_label">Режим оповещения</string>
+    <string name="confirm_warnings_label">Внимание</string>
+    <string name="confirm_save">Сохранить</string>
+    <string name="confirm_cancel">Отмена</string>
+    <string name="confirm_low_confidence">Низкая уверенность</string>
+
+    <string name="delivery_mode_notification">Уведомление</string>
+    <string name="delivery_mode_alarm">Будильник</string>
+    <string name="delivery_mode_vibrate">Вибрация</string>
+    <string name="delivery_mode_silent">Без звука</string>
+
+    <string name="parser_warning_no_time">Время не найдено</string>
+    <string name="parser_warning_ambiguous_time">Неоднозначное время (утро или вечер?)</string>
+    <string name="parser_warning_past_time">Время уже прошло — выбрано завтра</string>
+    <string name="parser_warning_body_empty">Текст напоминания пуст после удаления времени</string>
+    <string name="parser_warning_date_missing_year">Дата без года — подставлен текущий</string>
+
     <string name="confirm_time_not_set">Время не указано</string>
     <string name="confirm_pick_date">Дата</string>
-    <string name="confirm_pick_time">Время</string>
-    <string name="confirm_body_label">Текст напоминания</string>
-    <string name="confirm_save">Сохранить</string>
     <string name="confirm_ok">OK</string>
-    <string name="confirm_cancel">Отмена</string>
 
     <string name="warning_time_ambiguous">Время может быть неточным — уточните</string>
     <string name="warning_date_year">Год подставлен автоматически</string>
     <string name="warning_no_time">Время не распознано — выберите вручную</string>
     <string name="warning_body_empty">Текст напоминания пустой</string>
     <string name="warning_past_adjusted">Время уже прошло — предложено завтра</string>
-    <string name="confirm_low_confidence_hint">Низкая уверенность в распознавании — проверьте данные</string>
+
+    <string name="widget_empty">Нет предстоящих</string>
+    <string name="widget_next_at">%1$s</string>
+    <string name="widget_next_label">Следующее</string>
+    <string name="widget_list_empty">Нет напоминаний</string>
 </resources>

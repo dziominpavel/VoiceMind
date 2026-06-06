@@ -29,7 +29,7 @@ alwaysApply: true
 ## Документация (читать при изменениях)
 1. `docs/PROJECT_OVERVIEW.md` — продукт и сценарии.
 2. `docs/FEATURE_PLAN.md` — фазы разработки.
-3. `docs/REMINDER_PARSING.md` — парсинг времени.
+3. `openspec/specs/reminder-parsing/spec.md` — парсинг времени (формальные требования + справочник паттернов).
 4. `docs/ARCHITECTURE.md` — архитектура.
 5. `docs/DESIGN_SYSTEM.md` — токены CLEAR BELL (свои, не GymProgress).
 

@@ -10,11 +10,10 @@
 
 1. `docs/PROJECT_OVERVIEW.md` — продукт.
 2. `docs/FEATURE_PLAN.md` — фазы.
-3. `docs/REMINDER_PARSING.md`, `docs/NOTIFICATION_MODES.md` — парсинг и оповещения.
-4. `docs/ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md`.
-5. `.windsurf/rules/` — автоматические правила для Windsurf/Cascade.
-6. `.windsurf/workflows/` — повторяющиеся сценарии (`/implement-feature`, `/parser-work`, `/db-migration`, `/code-review`).
-7. `.cursor/rules/` и `.cursor/plans/` — контекст и планы для Cursor (см. `project-context.mdc`).
+3. `openspec/specs/reminder-parsing/spec.md` — **формальные требования парсера** (BDD-сценарии + справочник паттернов).
+4. `docs/NOTIFICATION_MODES.md` — режимы оповещения.
+5. `docs/ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md`.
+6. `.cursor/rules/` и `.cursor/plans/` — контекст и планы для Cursor (см. `project-context.mdc`).
 
 ## Приоритеты (кратко)
 

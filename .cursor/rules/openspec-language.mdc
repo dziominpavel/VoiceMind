@@ -1,7 +1,7 @@
 ---
 description: Язык openspec-артефактов — русский
 globs: ["openspec/**/*"]
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Язык openspec
