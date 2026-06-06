@@ -866,4 +866,33 @@ class ReminderParserTest {
         assertEquals(LocalDateTime.of(2026, 5, 5, 9, 0).atZone(zone).toInstant(), r.fireAt)
         assertEquals("оплатить", r.body)
     }
+
+    @Test
+    fun todayAt8pm_withColon_parses2000() {
+        val r = parser.parse("сегодня в 8:00 вечера спать", now)
+        println("fireAt=${r.fireAt}, body=${r.body}, warnings=${r.warnings}, confidence=${r.confidence}")
+        assertEquals(LocalDateTime.of(2026, 5, 17, 20, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("спать", r.body)
+    }
+
+    @Test
+    fun debugRegexMatch() {
+        val text = "сегодня в 8:00 вечера спать"
+        // Match actual regex from ReminderParser source (WB + pattern + WE)
+        val WB = """(?<![\p{L}\d])"""
+        val WE = """(?![\p{L}\d])"""
+        val regex = Regex("""${WB}в\s+(\d{1,2})(?:[:.](\d{2}))?\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""")
+        val matches = regex.findAll(text).toList()
+        println("Matches: ${matches.size}")
+        matches.forEach { m ->
+            println("Match='${m.value}', groups=${m.groupValues}")
+        }
+    }
+
+    @Test
+    fun todayAt8pm_withoutColon_parses2000() {
+        val r = parser.parse("сегодня в 8 вечера спать", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 20, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("спать", r.body)
+    }
 }

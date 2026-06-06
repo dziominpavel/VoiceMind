@@ -369,7 +369,7 @@ class ReminderParser(
                         time = LocalTime.of(h, min),
                         span = m.range,
                         type = TimeType.HH_MM,
-                        score = 100,
+                        score = 90,
                     )
                 }
             }
@@ -381,16 +381,20 @@ class ReminderParser(
             val part = m.groupValues[3]
             val h = when (part) {
                 "утра", "утром" -> hour
-                "дня", "днём", "днем" -> if (hour == 12) 12 else hour + 12
-                "вечера", "вечером" -> if (hour == 12) 12 else hour + 12
+                "дня", "днём", "днем" -> if (hour >= 12) hour else hour + 12
+                "вечера", "вечером" -> if (hour >= 12) hour else hour + 12
                 "ночи", "ночью" -> if (hour == 12) 0 else hour
                 else -> hour
+            }
+            val score = when (part) {
+                "вечера", "вечером", "ночи", "ночью" -> 100
+                else -> 80
             }
             timeCandidates += TimeCandidate(
                 time = LocalTime.of(h.coerceIn(0, 23), min),
                 span = m.range,
                 type = TimeType.HOURS_PART,
-                score = 80,
+                score = score,
             )
         }
 

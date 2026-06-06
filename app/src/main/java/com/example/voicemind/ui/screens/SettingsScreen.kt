@@ -207,13 +207,13 @@ fun SettingsScreen(
         // About
         SettingsCard(title = stringResource(R.string.settings_about_title)) {
             Text(
-                text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME, BuildConfig.BUILD_TYPE),
+                text = stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextMuted,
             )
             Spacer(modifier = Modifier.height(Spacing.sm))
             Text(
-                text = stringResource(R.string.settings_test_hint),
+                text = stringResource(R.string.settings_developer_label) + " " + stringResource(R.string.settings_developer_name),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMuted,
             )

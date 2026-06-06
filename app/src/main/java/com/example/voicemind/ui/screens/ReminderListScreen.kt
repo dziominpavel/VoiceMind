@@ -429,6 +429,7 @@ private fun UpcomingReminderCard(
                         tint = deliveryIcon.second,
                         modifier = Modifier.size(ComponentSize.iconMd),
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Checkbox(
                         checked = false,
                         onCheckedChange = { if (it) onComplete() },

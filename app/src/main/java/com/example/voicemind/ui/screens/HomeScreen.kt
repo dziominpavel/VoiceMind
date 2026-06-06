@@ -257,12 +257,19 @@ private fun UpcomingPreviewItem(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = FormatUtils.formatTime(reminder.fireAt),
-            style = MaterialTheme.typography.titleMedium,
-            color = TextPrimaryDark,
-            modifier = Modifier.width(64.dp),
-        )
+        Column(modifier = Modifier.width(64.dp)) {
+            Text(
+                text = FormatUtils.formatTime(reminder.fireAt),
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimaryDark,
+            )
+            Text(
+                text = FormatUtils.formatShortDate(reminder.fireAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+                maxLines = 1,
+            )
+        }
 
         Spacer(modifier = Modifier.width(Spacing.md))
 
