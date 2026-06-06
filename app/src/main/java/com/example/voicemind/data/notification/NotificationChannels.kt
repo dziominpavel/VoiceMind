@@ -82,7 +82,7 @@ object NotificationChannels {
     fun channelId(deliveryMode: DeliveryMode): String = when (deliveryMode) {
         DeliveryMode.ALARM -> ALARM
         DeliveryMode.NOTIFICATION -> DEFAULT
-        DeliveryMode.VIBRATE_ONLY -> VIBRATE
+        DeliveryMode.VIBRATE -> VIBRATE
         DeliveryMode.SILENT -> SILENT
     }
 }

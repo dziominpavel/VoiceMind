@@ -67,6 +67,16 @@
     <string name="settings_use_push_notification_hint">Показывать уведомление на экране</string>
     <string name="settings_use_vibration">Вибрация</string>
     <string name="settings_use_vibration_hint">Вибрировать при срабатывании</string>
+    <string name="settings_delivery_mode_title">Режим по умолчанию</string>
+    <string name="settings_mode_alarm">Будильник</string>
+    <string name="settings_mode_alarm_hint">Громкий звонок и вибрация</string>
+    <string name="settings_mode_notification">Уведомление</string>
+    <string name="settings_mode_notification_hint">Стандартное push-уведомление</string>
+    <string name="settings_mode_vibrate">Вибрация</string>
+    <string name="settings_mode_vibrate_hint">Только вибрация, без звука</string>
+    <string name="settings_mode_silent">Тихий</string>
+    <string name="settings_mode_silent_hint">Только в шторке, без звука и вибрации</string>
+    <string name="settings_alarm_title">Будильник</string>
     <string name="settings_confirm_before_schedule">Спрашивать подтверждение после голосового ввода</string>
     <string name="settings_confirm_before_schedule_hint">Показывать экран проверки перед сохранением</string>
     <string name="settings_dismiss_behavior_title">При смахивании напоминания</string>

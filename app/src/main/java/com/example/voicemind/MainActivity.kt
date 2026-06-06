@@ -95,8 +95,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val listTab by viewModel.listTab.collectAsState()
     val detailReminder by viewModel.detailReminder.collectAsState()
     val confirmBeforeSchedule by viewModel.confirmBeforeSchedule.collectAsState()
-    val useAlarmSound by viewModel.useAlarmSound.collectAsState()
-    val usePushNotification by viewModel.usePushNotification.collectAsState()
+    val defaultDeliveryMode by viewModel.defaultDeliveryMode.collectAsState()
     val useVibration by viewModel.useVibration.collectAsState()
     val alarmRingtoneUri by viewModel.alarmRingtoneUri.collectAsState()
     val alarmVolume by viewModel.alarmVolume.collectAsState()
@@ -291,16 +290,14 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     )
                     AppDestinations.SETTINGS -> SettingsScreen(
                         confirmBeforeSchedule = confirmBeforeSchedule,
-                        useAlarmSound = useAlarmSound,
-                        usePushNotification = usePushNotification,
+                        defaultDeliveryMode = defaultDeliveryMode,
                         useVibration = useVibration,
                         alarmRingtoneUri = alarmRingtoneUri,
                         alarmVolume = alarmVolume,
                         dismissBehavior = dismissBehavior,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                         onAlarmVolumeChange = { viewModel.setAlarmVolume(it) },
-                        onUseAlarmSoundChange = { viewModel.setUseAlarmSound(it) },
-                        onUsePushNotificationChange = { viewModel.setUsePushNotification(it) },
+                        onDefaultDeliveryModeChange = { viewModel.setDefaultDeliveryMode(it) },
                         onUseVibrationChange = { viewModel.setUseVibration(it) },
                         onSelectRingtone = { launchRingtonePicker() },
                         onRequestNotificationPermission = {
@@ -325,6 +322,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             pendingConfirm?.let { pending ->
                 ConfirmReminderScreen(
                     pending = pending,
+                    defaultDeliveryMode = defaultDeliveryMode,
                     onBack = { viewModel.dismissConfirm() },
                     onSave = { body, fireAt ->
                         viewModel.updatePending(body, fireAt)
@@ -342,9 +340,10 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             manualDraft?.let { draft ->
                 ManualReminderScreen(
                     draft = draft,
+                    defaultDeliveryMode = defaultDeliveryMode,
                     onBack = { viewModel.dismissManual() },
-                    onSave = { body, fireAt ->
-                        viewModel.saveManualReminder(body, fireAt)
+                    onSave = { body, fireAt, mode ->
+                        viewModel.saveManualReminder(body, fireAt, mode)
                     },
                 )
             }

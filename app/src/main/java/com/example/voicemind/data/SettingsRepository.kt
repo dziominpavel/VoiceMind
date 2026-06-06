@@ -17,23 +17,24 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 class SettingsRepository(private val context: Context) {
 
     private val confirmBeforeScheduleKey = booleanPreferencesKey("confirm_before_schedule")
-    private val useAlarmSoundKey = booleanPreferencesKey("use_alarm_sound")
-    private val usePushNotificationKey = booleanPreferencesKey("use_push_notification")
+    private val defaultDeliveryModeKey = stringPreferencesKey("default_delivery_mode")
     private val useVibrationKey = booleanPreferencesKey("use_vibration")
     private val alarmRingtoneUriKey = stringPreferencesKey("alarm_ringtone_uri")
     private val alarmVolumeKey = intPreferencesKey("alarm_volume")
     private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
 
+    // Legacy keys for one-time migration
+    private val useAlarmSoundKey = booleanPreferencesKey("use_alarm_sound")
+    private val usePushNotificationKey = booleanPreferencesKey("use_push_notification")
+
     val confirmBeforeSchedule: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[confirmBeforeScheduleKey] ?: true
     }
 
-    val useAlarmSound: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
-        prefs[useAlarmSoundKey] ?: false
-    }
-
-    val usePushNotification: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
-        prefs[usePushNotificationKey] ?: true
+    val defaultDeliveryMode: Flow<DeliveryMode> = context.settingsDataStore.data.map { prefs ->
+        prefs[defaultDeliveryModeKey]?.let {
+            runCatching { DeliveryMode.valueOf(it) }.getOrNull()
+        } ?: DeliveryMode.NOTIFICATION
     }
 
     val useVibration: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -60,15 +61,9 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setUseAlarmSound(enabled: Boolean) {
+    suspend fun setDefaultDeliveryMode(mode: DeliveryMode) {
         context.settingsDataStore.edit { prefs ->
-            prefs[useAlarmSoundKey] = enabled
-        }
-    }
-
-    suspend fun setUsePushNotification(enabled: Boolean) {
-        context.settingsDataStore.edit { prefs ->
-            prefs[usePushNotificationKey] = enabled
+            prefs[defaultDeliveryModeKey] = mode.name
         }
     }
 
@@ -100,13 +95,38 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Reads the default delivery mode, performing a one-time migration from legacy keys.
+     * Legacy keys (use_alarm_sound, use_push_notification) are removed after migration.
+     */
     suspend fun getDefaultDeliveryMode(): DeliveryMode {
-        return when {
-            useAlarmSound.first() -> DeliveryMode.ALARM
-            usePushNotification.first() -> DeliveryMode.NOTIFICATION
-            useVibration.first() -> DeliveryMode.VIBRATE_ONLY
+        val prefs = context.settingsDataStore.data.first()
+
+        // Check if already migrated
+        prefs[defaultDeliveryModeKey]?.let {
+            return runCatching { DeliveryMode.valueOf(it) }.getOrNull() ?: DeliveryMode.NOTIFICATION
+        }
+
+        // One-time migration from legacy keys
+        val hasAlarmSound = prefs[useAlarmSoundKey] ?: false
+        val hasPushNotification = prefs[usePushNotificationKey] ?: true
+        val hasVibration = prefs[useVibrationKey] ?: true
+
+        val migratedMode = when {
+            hasAlarmSound -> DeliveryMode.ALARM
+            hasPushNotification -> DeliveryMode.NOTIFICATION
+            hasVibration -> DeliveryMode.VIBRATE
             else -> DeliveryMode.SILENT
         }
+
+        // Save new key and clean up legacy keys
+        context.settingsDataStore.edit { editor ->
+            editor[defaultDeliveryModeKey] = migratedMode.name
+            editor.remove(useAlarmSoundKey)
+            editor.remove(usePushNotificationKey)
+        }
+
+        return migratedMode
     }
 
     companion object {

@@ -75,6 +75,7 @@ import java.time.ZoneId
 @Composable
 fun ConfirmReminderScreen(
     pending: PendingReminderConfirm,
+    defaultDeliveryMode: DeliveryMode = DeliveryMode.NOTIFICATION,
     onBack: () -> Unit,
     onSave: (body: String, fireAtMillis: Long?) -> Unit,
     onConfirm: () -> Unit,
@@ -84,7 +85,7 @@ fun ConfirmReminderScreen(
     val zone = remember { ZoneId.systemDefault() }
     var body by remember(pending) { mutableStateOf(pending.body) }
     var fireAtMillis by remember(pending) { mutableStateOf(pending.fireAtMillis) }
-    var selectedDeliveryMode by remember { mutableStateOf(DeliveryMode.NOTIFICATION) }
+    var selectedDeliveryMode by remember(defaultDeliveryMode) { mutableStateOf(defaultDeliveryMode) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -336,14 +337,14 @@ private fun Chip(
 }
 
 @Composable
-private fun DeliveryModeGrid(
+internal fun DeliveryModeGrid(
     selectedMode: DeliveryMode,
     onModeSelected: (DeliveryMode) -> Unit,
 ) {
     val modes = listOf(
         DeliveryMode.NOTIFICATION to Triple("Уведомление", "Стандартный пуш", Icons.Default.Notifications),
         DeliveryMode.ALARM to Triple("Будильник", "Громкий звук", Icons.Default.Alarm),
-        DeliveryMode.VIBRATE_ONLY to Triple("Вибрация", "Только вибро", Icons.Default.Vibration),
+        DeliveryMode.VIBRATE to Triple("Вибрация", "Только вибро", Icons.Default.Vibration),
         DeliveryMode.SILENT to Triple("Тихий", "Без звука", Icons.Default.NotificationsOff),
     )
 
@@ -385,7 +386,7 @@ private fun DeliveryModeGrid(
                                 modifier = Modifier.size(32.dp),
                                 tint = when (mode) {
                                     DeliveryMode.ALARM -> TimeWarning
-                                    DeliveryMode.VIBRATE_ONLY -> DeliveryVibrate
+                                    DeliveryMode.VIBRATE -> DeliveryVibrate
                                     else -> if (isSelected) Teal else TextMuted
                                 },
                             )

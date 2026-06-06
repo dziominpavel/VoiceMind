@@ -23,8 +23,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -44,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.voicemind.BuildConfig
 import com.example.voicemind.R
+import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.DismissBehavior
 import com.example.voicemind.ui.theme.ErrorCoral
 import com.example.voicemind.ui.theme.HapticType
@@ -61,15 +66,13 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingsScreen(
     confirmBeforeSchedule: Boolean,
-    useAlarmSound: Boolean,
-    usePushNotification: Boolean,
+    defaultDeliveryMode: DeliveryMode,
     useVibration: Boolean,
     alarmRingtoneUri: String?,
     alarmVolume: Int,
     dismissBehavior: DismissBehavior,
     onConfirmBeforeScheduleChange: (Boolean) -> Unit,
-    onUseAlarmSoundChange: (Boolean) -> Unit,
-    onUsePushNotificationChange: (Boolean) -> Unit,
+    onDefaultDeliveryModeChange: (DeliveryMode) -> Unit,
     onUseVibrationChange: (Boolean) -> Unit,
     onSelectRingtone: () -> Unit,
     onAlarmVolumeChange: (Int) -> Unit,
@@ -87,47 +90,86 @@ fun SettingsScreen(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        // Notifications Card
-        SettingsCard(title = stringResource(R.string.settings_notifications_title)) {
-            NotificationToggle(
-                title = stringResource(R.string.settings_use_alarm_sound),
-                subtitle = stringResource(R.string.settings_use_alarm_sound_hint),
-                checked = useAlarmSound,
-                onCheckedChange = onUseAlarmSoundChange,
+        // Default Delivery Mode Card
+        SettingsCard(title = stringResource(R.string.settings_delivery_mode_title)) {
+            DeliveryModeOption(
+                mode = DeliveryMode.ALARM,
+                title = stringResource(R.string.settings_mode_alarm),
+                subtitle = stringResource(R.string.settings_mode_alarm_hint),
+                icon = Icons.Default.Alarm,
+                selected = defaultDeliveryMode == DeliveryMode.ALARM,
+                onClick = { onDefaultDeliveryModeChange(DeliveryMode.ALARM) },
             )
-            AnimatedVisibility(
-                visible = useAlarmSound,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
+            DeliveryModeOption(
+                mode = DeliveryMode.NOTIFICATION,
+                title = stringResource(R.string.settings_mode_notification),
+                subtitle = stringResource(R.string.settings_mode_notification_hint),
+                icon = Icons.Default.Notifications,
+                selected = defaultDeliveryMode == DeliveryMode.NOTIFICATION,
+                onClick = { onDefaultDeliveryModeChange(DeliveryMode.NOTIFICATION) },
+            )
+            DeliveryModeOption(
+                mode = DeliveryMode.VIBRATE,
+                title = stringResource(R.string.settings_mode_vibrate),
+                subtitle = stringResource(R.string.settings_mode_vibrate_hint),
+                icon = Icons.Default.Vibration,
+                selected = defaultDeliveryMode == DeliveryMode.VIBRATE,
+                onClick = { onDefaultDeliveryModeChange(DeliveryMode.VIBRATE) },
+            )
+            DeliveryModeOption(
+                mode = DeliveryMode.SILENT,
+                title = stringResource(R.string.settings_mode_silent),
+                subtitle = stringResource(R.string.settings_mode_silent_hint),
+                icon = Icons.Default.NotificationsOff,
+                selected = defaultDeliveryMode == DeliveryMode.SILENT,
+                onClick = { onDefaultDeliveryModeChange(DeliveryMode.SILENT) },
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            // Vibration toggle (separate from mode selection)
+            val isVibrateMode = defaultDeliveryMode == DeliveryMode.VIBRATE
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    RingtonePickerRow(
-                        title = stringResource(R.string.settings_alarm_ringtone),
-                        uri = alarmRingtoneUri,
-                        onClick = onSelectRingtone,
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_use_vibration),
+                        style = MaterialTheme.typography.bodyLarge,
                     )
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    AlarmVolumeSlider(
-                        volume = alarmVolume,
-                        onVolumeChange = onAlarmVolumeChange,
+                    Text(
+                        text = stringResource(R.string.settings_use_vibration_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
                     )
                 }
+                Switch(
+                    checked = if (isVibrateMode) true else useVibration,
+                    onCheckedChange = onUseVibrationChange,
+                    enabled = !isVibrateMode,
+                )
             }
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            NotificationToggle(
-                title = stringResource(R.string.settings_use_push_notification),
-                subtitle = stringResource(R.string.settings_use_push_notification_hint),
-                checked = usePushNotification,
-                onCheckedChange = onUsePushNotificationChange,
-            )
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            NotificationToggle(
-                title = stringResource(R.string.settings_use_vibration),
-                subtitle = stringResource(R.string.settings_use_vibration_hint),
-                checked = useVibration,
-                onCheckedChange = onUseVibrationChange,
-            )
+        }
+
+        // Alarm-specific settings (only visible when ALARM selected)
+        AnimatedVisibility(
+            visible = defaultDeliveryMode == DeliveryMode.ALARM,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            SettingsCard(title = stringResource(R.string.settings_alarm_title)) {
+                RingtonePickerRow(
+                    title = stringResource(R.string.settings_alarm_ringtone),
+                    uri = alarmRingtoneUri,
+                    onClick = onSelectRingtone,
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                AlarmVolumeSlider(
+                    volume = alarmVolume,
+                    onVolumeChange = onAlarmVolumeChange,
+                )
+            }
         }
 
         // Behavior Card
@@ -196,7 +238,7 @@ fun SettingsScreen(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 val fullScreenOk = ReminderPermissions.hasUseFullScreenIntent(context)
                 PermissionCard(
-                    title = "Полноэкранные уведомления",
+                    title = "Полноэкранные intent",
                     subtitle = if (fullScreenOk) "Разрешены" else "Требуется разрешение для пробуждения экрана",
                     isGranted = fullScreenOk,
                     onAction = onRequestFullScreenIntentPermission,
@@ -242,6 +284,59 @@ private fun SettingsCard(
                 modifier = Modifier.padding(bottom = Spacing.sm),
             )
             content()
+        }
+    }
+}
+
+@Composable
+private fun DeliveryModeOption(
+    mode: DeliveryMode,
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val bgColor = if (selected) Teal.copy(alpha = 0.08f) else SurfaceElevated
+    val borderColor = if (selected) Teal else TextMuted.copy(alpha = 0.2f)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.xs)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) Teal else TextMuted,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(modifier = Modifier.width(Spacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextPrimaryDark,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (selected) Teal else TextMuted,
+                )
+            }
+            RadioButton(
+                selected = selected,
+                onClick = onClick,
+            )
         }
     }
 }
@@ -294,25 +389,6 @@ private fun PermissionCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun NotificationToggle(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
