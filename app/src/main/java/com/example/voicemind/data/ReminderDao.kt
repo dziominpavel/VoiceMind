@@ -113,4 +113,7 @@ interface ReminderDao {
         """,
     )
     suspend fun getOverduePending(now: Long): List<Reminder>
+
+    @Query("UPDATE reminders SET deliveryMode = :mode")
+    suspend fun updateAllDeliveryModes(mode: String)
 }

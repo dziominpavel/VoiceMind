@@ -1,7 +1,11 @@
-## MODIFIED Requirements
+## Purpose
+
+Домашний виджет VoiceMind с ближайшим напоминанием и быстрым доступом к микрофону.
+
+## Requirements
 
 ### Requirement: Цвета виджета
-Виджет ДОЛЖЕН использовать прозрачный фон и цвета NeoWave Voice.
+Виджет MUST использовать прозрачный фон и цвета NeoWave Voice.
 
 #### Scenario: Отображение
 - **WHEN** виджет отображается

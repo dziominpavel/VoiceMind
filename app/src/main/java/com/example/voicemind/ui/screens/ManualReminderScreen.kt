@@ -2,7 +2,6 @@ package com.example.voicemind.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.voicemind.R
-import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.ui.components.DateTimeField
 import com.example.voicemind.ui.components.WarningCard
@@ -50,19 +48,13 @@ import java.time.ZoneId
 @Composable
 fun ManualReminderScreen(
     draft: ManualReminderDraft,
-    defaultDeliveryMode: DeliveryMode = DeliveryMode.NOTIFICATION,
     onBack: () -> Unit,
-    onSave: (body: String, fireAtMillis: Long?, deliveryMode: String) -> Unit,
+    onSave: (body: String, fireAtMillis: Long?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val zone = remember { ZoneId.systemDefault() }
     var body by remember(draft) { mutableStateOf(draft.body) }
     var fireAtMillis by remember(draft) { mutableStateOf(draft.fireAtMillis) }
-    var selectedDeliveryMode by remember(draft) {
-        mutableStateOf(
-            draft.deliveryMode?.let { runCatching { DeliveryMode.valueOf(it) }.getOrNull() } ?: defaultDeliveryMode,
-        )
-    }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -100,7 +92,7 @@ fun ManualReminderScreen(
         bottomBar = {
             BottomAppBar {
                 Button(
-                    onClick = { onSave(body.trim(), fireAtMillis, selectedDeliveryMode.name) },
+                    onClick = { onSave(body.trim(), fireAtMillis) },
                     modifier = Modifier.fillMaxWidth().height(ComponentSize.saveButtonHeight),
                     shape = ShapePill,
                 ) {
@@ -117,19 +109,16 @@ fun ManualReminderScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            // Time display
             Text(
                 text = fireAtLabel,
                 style = TimeDisplay,
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            // Warnings
             if (warningMessages.isNotEmpty()) {
                 WarningCard(messages = warningMessages)
             }
 
-            // Raw phrase (if from voice)
             draft.rawPhrase?.let { phrase ->
                 Text(
                     text = stringResource(R.string.confirm_phrase_label),
@@ -156,13 +145,6 @@ fun ManualReminderScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 shape = MaterialTheme.shapes.medium,
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.sm))
-
-            DeliveryModeGrid(
-                selectedMode = selectedDeliveryMode,
-                onModeSelected = { selectedDeliveryMode = it },
             )
         }
     }

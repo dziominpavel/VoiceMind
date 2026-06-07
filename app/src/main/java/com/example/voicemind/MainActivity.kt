@@ -263,6 +263,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     AppDestinations.HOME -> HomeScreen(
                         nextReminder = upcomingReminders.firstOrNull(),
                         upcomingReminders = upcomingReminders,
+                        currentDeliveryMode = defaultDeliveryMode,
                         onMicClick = { startVoiceInput() },
                         onManualCreateClick = { viewModel.openManualCreate() },
                         onNextReminderClick = {
@@ -275,6 +276,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     )
                     AppDestinations.LIST -> ReminderListScreen(
                         selectedTab = listTab,
+                        currentDeliveryMode = defaultDeliveryMode,
                         onTabSelected = { viewModel.setListTab(it) },
                         upcomingReminders = upcomingReminders,
                         historyReminders = historyReminders,
@@ -322,7 +324,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             pendingConfirm?.let { pending ->
                 ConfirmReminderScreen(
                     pending = pending,
-                    defaultDeliveryMode = defaultDeliveryMode,
                     onBack = { viewModel.dismissConfirm() },
                     onSave = { body, fireAt ->
                         viewModel.updatePending(body, fireAt)
@@ -340,10 +341,9 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
             manualDraft?.let { draft ->
                 ManualReminderScreen(
                     draft = draft,
-                    defaultDeliveryMode = defaultDeliveryMode,
                     onBack = { viewModel.dismissManual() },
-                    onSave = { body, fireAt, mode ->
-                        viewModel.saveManualReminder(body, fireAt, mode)
+                    onSave = { body, fireAt ->
+                        viewModel.saveManualReminder(body, fireAt)
                     },
                 )
             }

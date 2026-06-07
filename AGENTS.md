@@ -14,6 +14,13 @@
 4. `docs/NOTIFICATION_MODES.md` — режимы оповещения.
 5. `docs/ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md`.
 6. `.cursor/rules/` и `.cursor/plans/` — контекст и планы для Cursor (см. `project-context.mdc`).
+7. `.devin/rules/` — те же openspec-правила для Devin.
+
+## OpenSpec
+
+- Артефакты на **русском**, normative keywords — **MUST/SHALL/MUST NOT** (не «ДОЛЖЕН»).
+- Main specs: `## Purpose` + `## Requirements`; delta: `## ADDED/MODIFIED/REMOVED`.
+- Проверка: `openspec validate --all`. Workflows: `/opsx:propose`, `/opsx:apply`, `/opsx:archive`.
 
 ## Приоритеты (кратко)
 

@@ -4,7 +4,6 @@ package com.example.voicemind.viewmodel
 data class ManualReminderDraft(
     val body: String = "",
     val fireAtMillis: Long? = null,
-    val deliveryMode: String? = null,
     /** Исходная фраза после голоса (для справки). */
     val rawPhrase: String? = null,
     val editingReminderId: Long? = null,

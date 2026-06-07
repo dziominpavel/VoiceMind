@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.content.IntentFilter
 import com.example.voicemind.data.ReminderRepository
+import com.example.voicemind.data.SettingsRepository
 import com.example.voicemind.data.notification.NotificationChannels
 import com.example.voicemind.ui.widget.ScreenOnReceiver
 import com.example.voicemind.ui.widget.WidgetRefreshWorker
@@ -22,6 +23,12 @@ class VoiceMindApplication : Application() {
         NotificationChannels.createAll(this)
         appScope.launch {
             val repo = ReminderRepository.getInstance(this@VoiceMindApplication)
+            val settings = SettingsRepository.getInstance(this@VoiceMindApplication)
+            if (!settings.isDeliveryModeSyncedV6()) {
+                val mode = settings.getDefaultDeliveryMode()
+                repo.syncAllDeliveryModes(mode)
+                settings.markDeliveryModeSyncedV6()
+            }
             repo.rescheduleAll()
             repo.fireOverdue()
             WidgetUpdater.updateAll(this@VoiceMindApplication)

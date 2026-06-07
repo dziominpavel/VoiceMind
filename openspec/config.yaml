@@ -1,20 +1,23 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  VoiceMind — Android голосовая напоминалка (Kotlin, Compose, Room, AlarmManager).
+  Продукт: голосовая фраза → STT ru-RU → ReminderParser → confirm → schedule.
+  UI-тексты приложения — русские. OpenSpec-артефакты (proposal, design, tasks, specs) — тоже русские,
+  кроме normative keywords MUST/SHALL/MUST NOT и заголовков сценариев WHEN/THEN/AND.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  specs:
+    - Текст requirements и сценариев — русский
+    - В каждом ### Requirement: обязательно MUST, SHALL или MUST NOT (не «ДОЛЖЕН») — иначе validate падает
+    - Main spec (openspec/specs/): секции ## Purpose и ## Requirements
+    - Delta spec (openspec/changes/*/specs/): ## ADDED/MODIFIED/REMOVED Requirements
+    - Каждый requirement — минимум один #### Scenario: с WHEN/THEN
+    - Capability = подсистема (reminder-parsing, ui-screens), не отдельная фича
+    - После правок запускать openspec validate --all
+  proposal:
+    - Русский язык, кратко: что и зачем
+  design:
+    - Русский язык: как реализовать, trade-offs
+  tasks:
+    - Русский язык, чекбоксы - [ ] / - [x]

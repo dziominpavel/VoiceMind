@@ -15,8 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,6 +43,7 @@ import com.example.voicemind.ui.components.EmptyState
 import com.example.voicemind.ui.components.MicButton
 import com.example.voicemind.ui.theme.AccentGlow
 import com.example.voicemind.ui.theme.ComponentSize
+import com.example.voicemind.ui.theme.DeliveryVibrate
 import com.example.voicemind.ui.theme.HapticType
 import com.example.voicemind.ui.theme.NeoWaveHaptics
 import com.example.voicemind.ui.theme.ShapePill
@@ -55,6 +59,7 @@ import com.example.voicemind.ui.theme.TimeWarning
 fun HomeScreen(
     nextReminder: Reminder?,
     upcomingReminders: List<Reminder>,
+    currentDeliveryMode: DeliveryMode,
     onMicClick: () -> Unit,
     onManualCreateClick: () -> Unit,
     onNextReminderClick: () -> Unit,
@@ -78,6 +83,7 @@ fun HomeScreen(
         if (nextReminder != null) {
             HeroCard(
                 reminder = nextReminder,
+                currentDeliveryMode = currentDeliveryMode,
                 onClick = onNextReminderClick,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -147,6 +153,7 @@ fun HomeScreen(
             upcomingReminders.take(3).forEach { reminder ->
                 UpcomingPreviewItem(
                     reminder = reminder,
+                    currentDeliveryMode = currentDeliveryMode,
                     onClick = { onUpcomingClick(reminder.id) },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -160,6 +167,7 @@ fun HomeScreen(
 @Composable
 private fun HeroCard(
     reminder: Reminder,
+    currentDeliveryMode: DeliveryMode,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -223,19 +231,16 @@ private fun HeroCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    val deliveryIcon = when (reminder.deliveryMode) {
-                        DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications
-                        DeliveryMode.ALARM.name -> Icons.Default.Notifications
-                        DeliveryMode.VIBRATE.name -> Icons.Default.Notifications
-                        else -> Icons.Default.Notifications
+                    val deliveryIcon = when (currentDeliveryMode) {
+                        DeliveryMode.NOTIFICATION -> Icons.Default.Notifications to Teal
+                        DeliveryMode.ALARM -> Icons.Default.Alarm to TimeWarning
+                        DeliveryMode.VIBRATE -> Icons.Default.Vibration to DeliveryVibrate
+                        DeliveryMode.SILENT -> Icons.Default.NotificationsOff to TextMuted
                     }
                     Icon(
-                        imageVector = deliveryIcon,
+                        imageVector = deliveryIcon.first,
                         contentDescription = null,
-                        tint = when (reminder.deliveryMode) {
-                            DeliveryMode.ALARM.name -> TimeWarning
-                            else -> Teal
-                        },
+                        tint = deliveryIcon.second,
                         modifier = Modifier.size(ComponentSize.iconMd),
                     )
                 }
@@ -247,6 +252,7 @@ private fun HeroCard(
 @Composable
 private fun UpcomingPreviewItem(
     reminder: Reminder,
+    currentDeliveryMode: DeliveryMode,
     onClick: () -> Unit,
 ) {
     Row(
@@ -282,16 +288,16 @@ private fun UpcomingPreviewItem(
             modifier = Modifier.weight(1f),
         )
 
-        val deliveryIcon = when (reminder.deliveryMode) {
-            DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications
-            DeliveryMode.ALARM.name -> Icons.Default.Notifications
-            DeliveryMode.VIBRATE.name -> Icons.Default.Notifications
-            else -> Icons.Default.Notifications
+        val deliveryIcon = when (currentDeliveryMode) {
+            DeliveryMode.NOTIFICATION -> Icons.Default.Notifications to Teal
+            DeliveryMode.ALARM -> Icons.Default.Alarm to TimeWarning
+            DeliveryMode.VIBRATE -> Icons.Default.Vibration to DeliveryVibrate
+            DeliveryMode.SILENT -> Icons.Default.NotificationsOff to TextMuted
         }
         Icon(
-            imageVector = deliveryIcon,
+            imageVector = deliveryIcon.first,
             contentDescription = null,
-            tint = TextMuted,
+            tint = deliveryIcon.second,
             modifier = Modifier.size(ComponentSize.iconMd),
         )
     }

@@ -99,6 +99,10 @@ class ReminderRepository(context: Context) {
         dao.getById(id)
     }
 
+    suspend fun syncAllDeliveryModes(mode: DeliveryMode) = withContext(Dispatchers.IO) {
+        dao.updateAllDeliveryModes(mode.name)
+    }
+
     suspend fun updateAndSchedule(reminder: Reminder) = withContext(Dispatchers.IO) {
         val updated = reminder.copy(alarmRequestCode = reminder.id.requestCode())
         dao.update(updated)

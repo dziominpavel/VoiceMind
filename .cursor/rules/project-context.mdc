@@ -56,7 +56,7 @@ alwaysApply: true
 - `ui-theme-rules.mdc` — CLEAR BELL, токены, экраны.
 - `speech-recognition.mdc` — STT, fallback, timeout.
 - `testing-rules.mdc` — unit / instrumented / manual тесты.
-- `openspec-language.mdc` — язык openspec-артефактов (русский).
+- `openspec-language.mdc` — язык openspec (русский текст + MUST/SHALL в requirements).
 
 ## Секреты
 - `OPENROUTER_API_KEY` — только fallback-парсер (фаза 5), хранить в `local.properties` → `BuildConfig`.
