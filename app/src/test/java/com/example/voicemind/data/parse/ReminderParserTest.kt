@@ -754,6 +754,23 @@ class ReminderParserTest {
         assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
     }
 
+    @Test
+    fun inAMonth_defaultMorning() {
+        val r = parser.parse("через месяц напоминалка четыре", now)
+        assertEquals(LocalDateTime.of(2026, 6, 17, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("напоминалка четыре", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+        assertTrue(r.isVoiceParseSuccessful())
+    }
+
+    @Test
+    fun inTwoMonths_defaultMorning() {
+        val r = parser.parse("через 2 месяца сдать отчёт", now)
+        assertEquals(LocalDateTime.of(2026, 7, 17, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("сдать отчёт", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
     // --- Digit ordinal day (6.1–6.3) ---
 
     @Test

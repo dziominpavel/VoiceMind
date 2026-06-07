@@ -231,6 +231,17 @@ class ReminderParser(
             )
         }
 
+        RELATIVE_MONTH.findAll(lowerText).forEach { m ->
+            val months = m.groupValues[1].toIntOrNull()?.takeIf { it > 0 } ?: 1
+            dateCandidates += DateCandidate(
+                date = zonedNow.toLocalDate().plusMonths(months.toLong()),
+                span = m.range,
+                type = DateType.RELATIVE_DAYS,
+                score = 45,
+                relativeOnly = true,
+            )
+        }
+
         DAY_AFTER_TOMORROW.find(lowerText)?.let { m ->
             dateCandidates += DateCandidate(
                 date = zonedNow.toLocalDate().plusDays(2),
@@ -755,6 +766,7 @@ class ReminderParser(
         private val RELATIVE_COUPLE_HOURS = Regex("""${WB}через\s+пару\s+часов${WE}""")
         private val RELATIVE_FEW_MINUTES = Regex("""${WB}через\s+несколько\s+минут${WE}""")
         private val RELATIVE_WEEK = Regex("""${WB}через\s+неделю${WE}""")
+        private val RELATIVE_MONTH = Regex("""${WB}через\s+(?:(\d+)\s+)?месяц(?:а|ев)?${WE}""")
         private val DAY_TODAY = Regex("""${WB}сегодня${WE}""")
         private val DAY_TOMORROW = Regex("""${WB}завтра${WE}""")
         private val DAY_AFTER_TOMORROW = Regex("""${WB}послезавтра${WE}""")

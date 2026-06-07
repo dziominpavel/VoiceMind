@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -64,8 +65,9 @@ fun SwipeToRevealBox(
                 .align(Alignment.CenterEnd)
                 .width(maxReveal)
                 .fillMaxHeight()
+                .graphicsLayer { alpha = if (offsetX.value < -1f) 1f else 0f }
                 .background(MaterialTheme.colorScheme.errorContainer, cardShape)
-                .clickable { onAction() },
+                .clickable(enabled = offsetX.value < -1f) { onAction() },
             contentAlignment = Alignment.Center,
         ) {
             Icon(
