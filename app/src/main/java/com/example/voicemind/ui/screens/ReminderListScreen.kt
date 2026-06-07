@@ -304,7 +304,7 @@ private fun UpcomingReminderCard(
             ),
         colors = CardDefaults.cardColors(
             containerColor = if (bgTint != Color.Unspecified) {
-                bgTint.copy(alpha = cardState.tintAlpha)
+                blendSurfaceWithTint(SurfaceElevated, bgTint, cardState.tintAlpha)
             } else {
                 SurfaceElevated
             },
@@ -528,4 +528,14 @@ private fun CardState.backgroundTint(): Color = when (this) {
     else -> Color.Unspecified
 }
 
+/** Непрозрачный blend: urgency-tint без alpha, чтобы не просвечивала reveal-панель. */
+private fun blendSurfaceWithTint(base: Color, tint: Color, fraction: Float): Color {
+    val f = fraction.coerceIn(0f, 1f)
+    return Color(
+        red = base.red + (tint.red - base.red) * f,
+        green = base.green + (tint.green - base.green) * f,
+        blue = base.blue + (tint.blue - base.blue) * f,
+        alpha = 1f,
+    )
+}
 
