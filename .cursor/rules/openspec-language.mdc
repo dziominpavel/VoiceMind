@@ -1,16 +1,74 @@
 ---
-description: Язык openspec-артефактов — русский
+description: Язык openspec-артефактов — русский + normative keywords MUST/SHALL
 globs: ["openspec/**/*"]
 alwaysApply: true
 ---
 
 # Язык openspec
 
-Все артефакты openspec (proposal, design, specs, tasks) пишутся на **русском языке**.
+## Текст — русский
 
-- proposal.md — русский
-- design.md — русский
-- specs/**/*.md — русский
-- tasks.md — русский
+Все артефакты openspec пишутся на **русском языке**:
 
-Код внутри артефактов (snippets, примеры) — английский, как и весь кодовой базе.
+- `proposal.md`, `design.md`, `tasks.md` — русский
+- `specs/**/*.md` — русский (названия requirements, сценарии, Purpose)
+- Код в snippets и примерах — **английский**, как в кодовой базе
+
+## Исключение: normative keywords (обязательно)
+
+`openspec validate` **не распознаёт** русские «ДОЛЖЕН», «ДОЛЖНА», «ДОЛЖНО», «ДОЛЖНЫ», «НЕ ДОЛЖНО».
+
+В **первой строке** каждого `### Requirement:` используй английские ключевые слова:
+
+| Смысл | Пиши | Не пиши |
+|-------|------|---------|
+| Обязательство | `MUST` / `SHALL` | ДОЛЖЕН, ДОЛЖНА, ДОЛЖНО |
+| Запрет | `MUST NOT` | НЕ ДОЛЖЕН, НЕ ДОЛЖНО |
+
+**Примеры:**
+
+```
+✅ Парсер MUST возвращать ParseResult с полями fireAt, body, confidence.
+✅ Приложение MUST NOT записывать аудио на диск в MVP.
+❌ Парсер ДОЛЖЕН возвращать ParseResult...
+```
+
+Остальной текст requirement — по-русски. Сценарии: `#### Scenario:` + `**WHEN**` / `**THEN**` / `**AND**`.
+
+## Структура spec.md
+
+### Main spec — `openspec/specs/<capability>/spec.md`
+
+```markdown
+## Purpose
+Кратко: зачем эта capability.
+
+## Requirements
+
+### Requirement: Название
+Система MUST ...
+
+#### Scenario: ...
+- **WHEN** ...
+- **THEN** ...
+```
+
+Не использовать `## ADDED Requirements` / `## MODIFIED Requirements` в main specs.
+
+### Delta spec — `openspec/changes/<change>/specs/<capability>/spec.md`
+
+```markdown
+## ADDED Requirements
+## MODIFIED Requirements
+## REMOVED Requirements
+```
+
+Те же правила MUST/SHALL в каждом requirement.
+
+## Проверка
+
+После правок specs:
+
+```bash
+openspec validate --all
+```

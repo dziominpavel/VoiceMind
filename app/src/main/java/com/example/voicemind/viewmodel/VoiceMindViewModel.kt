@@ -148,6 +148,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun setDefaultDeliveryMode(mode: DeliveryMode) {
         viewModelScope.launch {
             settings.setDefaultDeliveryMode(mode)
+            repository.syncAllDeliveryModes(mode)
         }
     }
 
@@ -177,13 +178,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     /** Ручной режим: пустая форма с датой/временем по умолчанию. */
     fun openManualCreate() {
-        viewModelScope.launch {
-            val mode = settings.getDefaultDeliveryMode()
-            _manualDraft.value = ManualReminderDraft(
-                fireAtMillis = defaultFireAtMillis(),
-                deliveryMode = mode.name,
-            )
-        }
+        _manualDraft.value = ManualReminderDraft(
+            fireAtMillis = defaultFireAtMillis(),
+        )
     }
 
     fun startListening() {
@@ -258,7 +255,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun saveManualReminder(
         body: String,
         fireAtMillis: Long?,
-        deliveryMode: String? = null,
     ) {
         val draft = _manualDraft.value ?: return
         saveReminder(
@@ -266,7 +262,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             fireAtMillis = fireAtMillis,
             rawPhrase = draft.rawPhrase,
             editingId = draft.editingReminderId,
-            deliveryMode = deliveryMode ?: draft.deliveryMode,
         ) { _manualDraft.value = null }
     }
 
@@ -341,6 +336,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun duplicateReminder(reminder: Reminder) {
         safeDb(getString(R.string.error_save_failed)) {
             val now = System.currentTimeMillis()
+            val mode = settings.getDefaultDeliveryMode()
             repository.insertAndSchedule(
                 Reminder(
                     clientId = UUID.randomUUID().toString(),
@@ -350,7 +346,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                     status = ReminderStatus.PENDING.name,
                     createdAt = now,
                     alarmRequestCode = 0,
-                    deliveryMode = reminder.deliveryMode,
+                    deliveryMode = mode.name,
                 ),
             )
             _detailReminder.value = null
@@ -399,7 +395,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         fireAtMillis: Long?,
         rawPhrase: String?,
         editingId: Long?,
-        deliveryMode: String? = null,
         onSuccess: () -> Unit,
     ) {
         val fireAt = fireAtMillis
@@ -421,6 +416,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             _errorMessage.value = getString(R.string.error_exact_alarm)
         }
         safeDb(getString(R.string.error_save_failed)) {
+            val mode = settings.getDefaultDeliveryMode()
             if (editingId != null) {
                 val existing = repository.getById(editingId) ?: return@safeDb
                 repository.updateAndSchedule(
@@ -428,11 +424,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                         fireAt = fireAt,
                         body = body.trim(),
                         rawPhrase = rawPhrase ?: existing.rawPhrase,
+                        deliveryMode = mode.name,
                     ),
                 )
             } else {
                 val now = System.currentTimeMillis()
-                val mode = deliveryMode?.let { runCatching { DeliveryMode.valueOf(it) }.getOrNull() } ?: settings.getDefaultDeliveryMode()
                 repository.insertAndSchedule(
                     Reminder(
                         clientId = UUID.randomUUID().toString(),

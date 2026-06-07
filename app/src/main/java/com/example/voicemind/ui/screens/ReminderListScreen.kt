@@ -19,8 +19,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -33,7 +33,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Notifications
@@ -96,6 +95,7 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun ReminderListScreen(
     selectedTab: ReminderListTab,
+    currentDeliveryMode: DeliveryMode,
     onTabSelected: (ReminderListTab) -> Unit,
     upcomingReminders: List<Reminder>,
     historyReminders: List<Reminder>,
@@ -191,6 +191,8 @@ fun ReminderListScreen(
                             ) {
                                 UpcomingReminderCard(
                                     reminder = reminder,
+                                    currentDeliveryMode = currentDeliveryMode,
+                                    isRevealed = revealedReminderId == reminder.id,
                                     onClick = { onUpcomingClick(reminder.id) },
                                 )
                             }
@@ -259,6 +261,8 @@ private fun groupByDate(reminders: List<Reminder>): Map<String, List<Reminder>> 
 @Composable
 private fun UpcomingReminderCard(
     reminder: Reminder,
+    currentDeliveryMode: DeliveryMode,
+    isRevealed: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -384,19 +388,20 @@ private fun UpcomingReminderCard(
 
                 Spacer(modifier = Modifier.width(Spacing.md))
 
-                // Delivery icon
-                val deliveryIcon = when (reminder.deliveryMode) {
-                    DeliveryMode.NOTIFICATION.name -> Icons.Default.Notifications to Teal
-                    DeliveryMode.ALARM.name -> Icons.Default.Alarm to TimeWarning
-                    DeliveryMode.VIBRATE.name -> Icons.Default.Vibration to DeliveryVibrate
-                    else -> Icons.Default.NotificationsOff to TextMuted
+                if (!isRevealed) {
+                    val deliveryIcon = when (currentDeliveryMode) {
+                        DeliveryMode.NOTIFICATION -> Icons.Default.Notifications to Teal
+                        DeliveryMode.ALARM -> Icons.Default.Alarm to TimeWarning
+                        DeliveryMode.VIBRATE -> Icons.Default.Vibration to DeliveryVibrate
+                        DeliveryMode.SILENT -> Icons.Default.NotificationsOff to TextMuted
+                    }
+                    Icon(
+                        imageVector = deliveryIcon.first,
+                        contentDescription = null,
+                        tint = deliveryIcon.second,
+                        modifier = Modifier.size(ComponentSize.iconMd),
+                    )
                 }
-                Icon(
-                    imageVector = deliveryIcon.first,
-                    contentDescription = null,
-                    tint = deliveryIcon.second,
-                    modifier = Modifier.size(ComponentSize.iconMd),
-                )
             }
         }
     }

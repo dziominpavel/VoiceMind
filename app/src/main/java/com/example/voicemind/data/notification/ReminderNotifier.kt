@@ -23,9 +23,9 @@ class ReminderNotifier(private val context: Context) {
     suspend fun show(reminder: Reminder) {
         NotificationChannels.createAll(context)
 
-        val deliveryMode = DeliveryMode.valueOf(reminder.deliveryMode)
-        val channelId = NotificationChannels.channelId(deliveryMode)
         val settings = SettingsRepository.getInstance(context)
+        val deliveryMode = settings.getDefaultDeliveryMode()
+        val channelId = NotificationChannels.channelId(deliveryMode)
         val useVibration = settings.useVibration.first()
 
         val contentIntent = PendingIntent.getActivity(

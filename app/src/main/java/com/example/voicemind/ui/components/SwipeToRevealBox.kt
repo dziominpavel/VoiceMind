@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -55,33 +56,29 @@ fun SwipeToRevealBox(
         }
     }
 
+    val cardShape = MaterialTheme.shapes.medium
+
     Box(modifier = modifier.fillMaxWidth()) {
-        // Background reveal panel
         Box(
             modifier = Modifier
-                .matchParentSize()
-                .background(MaterialTheme.colorScheme.errorContainer)
+                .align(Alignment.CenterEnd)
+                .width(maxReveal)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.errorContainer, cardShape)
                 .clickable { onAction() },
-            contentAlignment = Alignment.CenterEnd,
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .width(maxReveal)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.list_cancel),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = stringResource(R.string.list_cancel),
+                tint = MaterialTheme.colorScheme.error,
+            )
         }
 
-        // Foreground content (draggable card)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(cardShape)
                 .offset { IntOffset(offsetX.value.toInt(), 0) }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(

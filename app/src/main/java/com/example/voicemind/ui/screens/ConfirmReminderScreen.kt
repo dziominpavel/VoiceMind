@@ -20,14 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,12 +40,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
-import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.parse.ParseWarning
 import com.example.voicemind.ui.components.WarningCard
 import com.example.voicemind.ui.theme.ComponentSize
-import com.example.voicemind.ui.theme.DeliveryVibrate
 import com.example.voicemind.ui.theme.HapticType
 import com.example.voicemind.ui.theme.NeoWaveHaptics
 import com.example.voicemind.ui.theme.ShapePill
@@ -75,7 +67,6 @@ import java.time.ZoneId
 @Composable
 fun ConfirmReminderScreen(
     pending: PendingReminderConfirm,
-    defaultDeliveryMode: DeliveryMode = DeliveryMode.NOTIFICATION,
     onBack: () -> Unit,
     onSave: (body: String, fireAtMillis: Long?) -> Unit,
     onConfirm: () -> Unit,
@@ -85,7 +76,6 @@ fun ConfirmReminderScreen(
     val zone = remember { ZoneId.systemDefault() }
     var body by remember(pending) { mutableStateOf(pending.body) }
     var fireAtMillis by remember(pending) { mutableStateOf(pending.fireAtMillis) }
-    var selectedDeliveryMode by remember(defaultDeliveryMode) { mutableStateOf(defaultDeliveryMode) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -191,17 +181,6 @@ fun ConfirmReminderScreen(
             if (warningMessages.isNotEmpty()) {
                 WarningCard(messages = warningMessages)
             }
-
-            // Delivery Mode Grid
-            Text(
-                text = "Режим оповещения",
-                style = MaterialTheme.typography.labelLarge,
-                color = TextMuted,
-            )
-            DeliveryModeGrid(
-                selectedMode = selectedDeliveryMode,
-                onModeSelected = { selectedDeliveryMode = it },
-            )
 
             Spacer(modifier = Modifier.weight(1f))
         }
@@ -333,79 +312,6 @@ private fun Chip(
             style = MaterialTheme.typography.labelLarge,
             color = if (selected) Teal else TextPrimaryDark,
         )
-    }
-}
-
-@Composable
-internal fun DeliveryModeGrid(
-    selectedMode: DeliveryMode,
-    onModeSelected: (DeliveryMode) -> Unit,
-) {
-    val modes = listOf(
-        DeliveryMode.NOTIFICATION to Triple("Уведомление", "Стандартный пуш", Icons.Default.Notifications),
-        DeliveryMode.ALARM to Triple("Будильник", "Громкий звук", Icons.Default.Alarm),
-        DeliveryMode.VIBRATE to Triple("Вибрация", "Только вибро", Icons.Default.Vibration),
-        DeliveryMode.SILENT to Triple("Тихий", "Без звука", Icons.Default.NotificationsOff),
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        modes.chunked(2).forEach { rowModes ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                rowModes.forEach { (mode, info) ->
-                    val (title, subtitle, icon) = info
-                    val isSelected = mode == selectedMode
-
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(ComponentSize.deliveryCardHeight)
-                            .clickable { onModeSelected(mode) },
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) TealContainer else SurfaceElevated,
-                        ),
-                        border = if (isSelected) {
-                            androidx.compose.foundation.BorderStroke(2.dp, Teal)
-                        } else {
-                            androidx.compose.foundation.BorderStroke(1.dp, TextMuted.copy(alpha = 0.3f))
-                        },
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = when (mode) {
-                                    DeliveryMode.ALARM -> TimeWarning
-                                    DeliveryMode.VIBRATE -> DeliveryVibrate
-                                    else -> if (isSelected) Teal else TextMuted
-                                },
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (isSelected) Teal else TextPrimaryDark,
-                            )
-                            Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextMuted,
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

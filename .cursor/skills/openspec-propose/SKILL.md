@@ -105,6 +105,8 @@ After completing all artifacts, summarize:
 **Guardrails**
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
 - Always read dependency artifacts before creating a new one
+- Spec requirements: русский текст, но MUST/SHALL/MUST NOT (см. openspec-language rule) — иначе `openspec validate` падает
+- Main specs: `## Purpose` + `## Requirements`; delta specs: `## ADDED/MODIFIED/REMOVED Requirements`
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next

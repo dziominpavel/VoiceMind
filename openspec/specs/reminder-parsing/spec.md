@@ -1,7 +1,11 @@
-## ADDED Requirements
+## Purpose
+
+Парсинг русскоязычных голосовых фраз с датой и временем в структуру ParseResult с warnings и confidence.
+
+## Requirements
 
 ### Requirement: Контракт ParseResult
-Парсер ДОЛЖЕН возвращать ParseResult с полями: fireAt (Instant?), body (String), confidence (Float), warnings (List<ParseWarning>), matchedTimeSpan (IntRange?), rawPhrase (String).
+Парсер MUST возвращать ParseResult с полями: fireAt (Instant?), body (String), confidence (Float), warnings (List<ParseWarning>), matchedTimeSpan (IntRange?), rawPhrase (String).
 
 #### Scenario: Успешный парсинг
 - **WHEN** пользователь говорит "завтра в 9:00 позвонить"
@@ -11,7 +15,7 @@
 - **AND** ParseResult.warnings пустой
 
 ### Requirement: ParseWarning TIME_AMBIGUOUS
-Если время найдено без явного указания am/pm или части дня, парсер ДОЛЖЕН выдавать warning TIME_AMBIGUOUS.
+Если время найдено без явного указания am/pm или части дня, парсер MUST выдавать warning TIME_AMBIGUOUS.
 
 #### Scenario: Неоднозначное время
 - **WHEN** пользователь говорит "в девять позвонить"
@@ -20,7 +24,7 @@
 - **AND** confidence <= 0.5
 
 ### Requirement: ParseWarning NO_TIME_FOUND
-Если время не найдено, парсер ДОЛЖЕН выдавать warning NO_TIME_FOUND.
+Если время не найдено, парсер MUST выдавать warning NO_TIME_FOUND.
 
 #### Scenario: Нет времени
 - **WHEN** пользователь говорит "купить молоко" без времени
@@ -29,7 +33,7 @@
 - **AND** confidence = 0
 
 ### Requirement: ParseWarning BODY_EMPTY
-Если после удаления time spans остаётся пустая строка, парсер ДОЛЖЕН выдавать warning BODY_EMPTY.
+Если после удаления time spans остаётся пустая строка, парсер MUST выдавать warning BODY_EMPTY.
 
 #### Scenario: Пустой body
 - **WHEN** пользователь говорит "завтра в 9:00"
@@ -38,7 +42,7 @@
 - **AND** ParseResult.warnings содержит BODY_EMPTY
 
 ### Requirement: Candidate-based engine
-Парсер ДОЛЖЕН использовать candidate-based engine: находить ВСЕ матчи regex, создавать DateCandidate/TimeCandidate со score, выбирать лучших по max score.
+Парсер MUST использовать candidate-based engine: находить ВСЕ матчи regex, создавать DateCandidate/TimeCandidate со score, выбирать лучших по max score.
 
 #### Scenario: Конфликт кандидатов
 - **WHEN** пользователь говорит "утром в 9:00 позвонить"
@@ -47,7 +51,7 @@
 - **AND** TIME_AMBIGUOUS warning НЕ выдаётся
 
 ### Requirement: Прошедшее время
-Если распознанный fireAt < now и в фразе было "сегодня", парсер ДОЛЖЕН выдавать warning PAST_TIME_ADJUSTED.
+Если распознанный fireAt < now и в фразе было "сегодня", парсер MUST выдавать warning PAST_TIME_ADJUSTED.
 
 #### Scenario: Утро уже прошло
 - **WHEN** пользователь говорит "сегодня в 8 утра позвонить" в 14:00
@@ -55,7 +59,7 @@
 - **AND** ParseResult.warnings содержит PAST_TIME_ADJUSTED
 
 ### Requirement: Часовой пояс локальный
-Все времена парсера ДОЛЖНЫ быть в локальном часовом поясе устройства.
+Все времена парсера MUST быть в локальном часовом поясе устройства.
 
 #### Scenario: Локальный timezone
 - **WHEN** парсер вычисляет fireAt
@@ -63,7 +67,7 @@
 - **AND** epoch millis корректны для текущего TZ
 
 ### Requirement: Маркеры времени суток участвуют в разрешении времени
-Парсер должен распознавать русские маркеры времени суток и использовать их для определения правильного часа, не давая тексту маркера утекать в body напоминания.
+Парсер MUST распознавать русские маркеры времени суток и использовать их для определения правильного часа, не давая тексту маркера утекать в body напоминания.
 
 #### Scenario: Голый час с маркером вечера
 - **КОГДА** пользователь говорит «в 10 вечера заполнить анкету»
@@ -117,7 +121,7 @@
 - **ТОГДА** body — «Сделать отчёт» (без «вечера», без «9 числа», без «в 10»)
 
 ### Requirement: Порядковые дни месяца разрешаются в абсолютные даты
-Парсер должен понимать русское сокращение для конкретного дня месяца («N числа», «N-го числа») и разрешать его в конкретную дату, с переходом на следующий месяц, если день уже прошёл.
+Парсер MUST понимать русское сокращение для конкретного дня месяца («N числа», «N-го числа») и разрешать его в конкретную дату, с переходом на следующий месяц, если день уже прошёл.
 
 #### Scenario: День текущего месяца в будущем
 - **КОГДА** пользователь говорит «15 числа сходить в банк», а сегодня 3 июня

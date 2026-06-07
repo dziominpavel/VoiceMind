@@ -22,6 +22,7 @@ class SettingsRepository(private val context: Context) {
     private val alarmRingtoneUriKey = stringPreferencesKey("alarm_ringtone_uri")
     private val alarmVolumeKey = intPreferencesKey("alarm_volume")
     private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
+    private val deliveryModeSyncedV6Key = booleanPreferencesKey("delivery_mode_synced_v6")
 
     // Legacy keys for one-time migration
     private val useAlarmSoundKey = booleanPreferencesKey("use_alarm_sound")
@@ -127,6 +128,17 @@ class SettingsRepository(private val context: Context) {
         }
 
         return migratedMode
+    }
+
+    suspend fun isDeliveryModeSyncedV6(): Boolean {
+        val prefs = context.settingsDataStore.data.first()
+        return prefs[deliveryModeSyncedV6Key] == true
+    }
+
+    suspend fun markDeliveryModeSyncedV6() {
+        context.settingsDataStore.edit { prefs ->
+            prefs[deliveryModeSyncedV6Key] = true
+        }
     }
 
     companion object {
