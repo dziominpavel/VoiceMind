@@ -2,20 +2,41 @@
 
 > Зеркало `.cursor/rules/openspec-specs-structure.mdc`.
 
-**Capability = подсистема**, не отдельная фича. Формат MUST/SHALL — см. `openspec-language.md`.
+**Capability = подсистема/домен, а не отдельная фича.**
 
-## Capability VoiceMind
+Формат spec.md (Purpose, MUST/SHALL, сценарии) — см. `openspec-language.md`.
 
-- `reminder-parsing/` — парсинг дат и времени
-- `speech-recognition/` — STT
-- `notification-delivery/` — режимы оповещения, каналы, actions
-- `ui-screens/` — экраны и UI
-- `alarm-screen-wake/` — пробуждение экрана ALARM
-- `persistent-vibration/` — вибрация
-- `widget/` — домашний виджет
+## Правила группировки
 
-## Правила
+- **Крупные capability** — одна папка на подсистему (`reminder-parsing/`, `notification-delivery/`, `speech-recognition/`)
+- **Не мелкие capability** — не создавать `parse-half-past/`, `parse-weekend/`, `weekday-next/` и т.п.
+- **Delta specs** при архивации сливаются в существующую папку подсистемы, а не создают новую
 
-- Новый regex/экран/канал → дописать в существующую capability, не создавать новую папку под фичу
-- При архивации change: delta → merge в main spec (`## Purpose` + `## Requirements`)
-- После merge: `openspec validate --all`
+## Текущие capability VoiceMind
+
+```
+openspec/specs/
+├── reminder-parsing/      ← время, даты, относительные, части дня, выходные
+├── speech-recognition/    ← STT, fallback, timeout
+├── notification-delivery/ ← режимы, каналы, actions
+├── ui-screens/            ← экраны, навигация, оверлеи
+├── alarm-screen-wake/     ← пробуждение экрана при ALARM
+├── persistent-vibration/  ← паттерн вибрации, авто-остановка
+└── widget/                ← домашний виджет
+```
+
+## Когда создавать новую папку
+
+Только если change вводит **новую подсистему**, которой ещё нет в specs/. Например:
+- `import-export/` — если появляется backup/sync
+
+Не создавать новую папку для:
+- нового regex в парсере → дописать в `reminder-parsing/spec.md`
+- нового экрана → дописать в `ui-screens/spec.md`
+- нового канала уведомлений → дописать в `notification-delivery/spec.md`
+
+## Синхронизация при архивации
+
+1. Delta из `changes/<name>/specs/` → merge в `openspec/specs/<capability>/spec.md`
+2. Main spec остаётся в формате `## Purpose` + `## Requirements`
+3. `openspec validate --all` — все items должны pass

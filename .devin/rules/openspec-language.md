@@ -4,30 +4,66 @@
 
 ## Текст — русский
 
-`proposal.md`, `design.md`, `tasks.md`, `specs/**/*.md` — **русский**.
-Код в snippets — **английский**.
+Все артефакты openspec пишутся на **русском языке**:
 
-## Normative keywords — только английский
+- `proposal.md`, `design.md`, `tasks.md` — русский
+- `specs/**/*.md` — русский (названия requirements, сценарии, Purpose)
+- Код в snippets и примерах — **английский**, как в кодовой базе
 
-`openspec validate` **не принимает** «ДОЛЖЕН», «ДОЛЖНА», «ДОЛЖНО», «НЕ ДОЛЖНО».
+## Исключение: normative keywords (обязательно)
 
-В каждом `### Requirement:` используй **MUST**, **SHALL** или **MUST NOT**:
+`openspec validate` **не распознаёт** русские «ДОЛЖЕН», «ДОЛЖНА», «ДОЛЖНО», «ДОЛЖНЫ», «НЕ ДОЛЖНО».
+
+В **первой строке** каждого `### Requirement:` используй английские ключевые слова:
+
+| Смысл | Пиши | Не пиши |
+|-------|------|---------|
+| Обязательство | `MUST` / `SHALL` | ДОЛЖЕН, ДОЛЖНА, ДОЛЖНО |
+| Запрет | `MUST NOT` | НЕ ДОЛЖЕН, НЕ ДОЛЖНО |
+
+**Примеры:**
 
 ```
-✅ Система MUST включать экран при deliveryMode ALARM.
-❌ Система ДОЛЖНА включать экран...
+✅ Парсер MUST возвращать ParseResult с полями fireAt, body, confidence.
+✅ Приложение MUST NOT записывать аудио на диск в MVP.
+❌ Парсер ДОЛЖЕН возвращать ParseResult...
 ```
 
-Сценарии: `#### Scenario:` + `**WHEN**` / `**THEN**` / `**AND**`.
+Остальной текст requirement — по-русски. Сценарии: `#### Scenario:` + `**WHEN**` / `**THEN**` / `**AND**`.
 
-## Структура
+## Структура spec.md
 
-| Файл | Заголовки |
-|------|-----------|
-| `openspec/specs/<capability>/spec.md` | `## Purpose` + `## Requirements` |
-| `openspec/changes/<change>/specs/.../spec.md` | `## ADDED/MODIFIED/REMOVED Requirements` |
+### Main spec — `openspec/specs/<capability>/spec.md`
+
+```markdown
+## Purpose
+Кратко: зачем эта capability.
+
+## Requirements
+
+### Requirement: Название
+Система MUST ...
+
+#### Scenario: ...
+- **WHEN** ...
+- **THEN** ...
+```
+
+Не использовать `## ADDED Requirements` / `## MODIFIED Requirements` в main specs.
+
+### Delta spec — `openspec/changes/<change>/specs/<capability>/spec.md`
+
+```markdown
+## ADDED Requirements
+## MODIFIED Requirements
+## REMOVED Requirements
+```
+
+Те же правила MUST/SHALL в каждом requirement.
 
 ## Проверка
+
+После правок specs:
 
 ```bash
 openspec validate --all

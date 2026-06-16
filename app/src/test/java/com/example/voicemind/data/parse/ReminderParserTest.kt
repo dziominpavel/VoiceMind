@@ -152,6 +152,21 @@ class ReminderParserTest {
     }
 
     @Test
+    fun tomorrowEvening_with100Rubles_noTimeLeak() {
+        val r = parser.parse("завтра вечером напомнить про 100 рублей", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 22, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("напомнить про 100 рублей", r.body)
+    }
+
+    @Test
+    fun threeDigitNumber_notTreatedAsTime() {
+        val r = parser.parse("про 100 рублей", now)
+        assertNull(r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+        assertEquals("про 100 рублей", r.body)
+    }
+
+    @Test
     fun hoursAndMinutes_explicit() {
         val r = parser.parse("завтра в 9 часов 15 минут созвон", now)
         assertEquals(LocalDateTime.of(2026, 5, 18, 9, 15).atZone(zone).toInstant(), r.fireAt)
