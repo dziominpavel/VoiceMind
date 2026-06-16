@@ -456,8 +456,8 @@ class ReminderParser(
 
         TIME_4DIGIT.findAll(lowerText).forEach { m ->
             if (!isInsideDateSpan(m.range, dateSpans)) {
-                val h = m.groupValues[1].toInt()
-                val min = m.groupValues[2].toInt()
+                val h = m.groupValues[1].ifEmpty { m.groupValues[3] }.toInt()
+                val min = m.groupValues[2].ifEmpty { m.groupValues[4] }.toInt()
                 if (h in 0..23 && min in 0..59) {
                     timeCandidates += TimeCandidate(
                         time = LocalTime.of(h, min),
@@ -786,7 +786,7 @@ class ReminderParser(
             """${WB}в\s+(\d{1,2})\s+час(?:а|ов)?\s+(\d{1,2})\s+минут""",
         )
         private val TIME_HOURS_SHORT = Regex("""${WB}в\s+(\d{1,2})${WE}""")
-        private val TIME_4DIGIT = Regex("""${WB}(?:в\s+)?(\d{1,2})\s?(\d{2})${WE}""")
+        private val TIME_4DIGIT = Regex("""${WB}(?:в\s+(\d{1,2})\s?(\d{2})|(\d{2})\s?(\d{2}))${WE}""")
         private val TIME_HALF_PAST = Regex("""${WB}(?:в\s+)?половин[ае]\s+(двенадцатого|одиннадцатого|десятого|девятого|восьмого|седьмого|шестого|пятого|четвёртого|четвертого|третьего|второго|первого)${WE}""")
         private val TIME_QUARTER_TO = Regex("""${WB}без\s+(четверти|пятнадцати|15)\s+(?:часа\s+)?(двенадцать|одиннадцать|десять|девять|восемь|семь|шесть|пять|четыре|три|два|один)${WE}""")
         private val TIME_QUARTER_PAST = Regex("""${WB}(?:в\s+)?четверть\s+(двенадцатого|одиннадцатого|десятого|девятого|восьмого|седьмого|шестого|пятого|четвёртого|четвертого|третьего|второго|первого)${WE}""")
