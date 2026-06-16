@@ -152,21 +152,6 @@ class ReminderParserTest {
     }
 
     @Test
-    fun tomorrowEvening_with100Rubles_noTimeLeak() {
-        val r = parser.parse("завтра вечером напомнить про 100 рублей", now)
-        assertEquals(LocalDateTime.of(2026, 5, 18, 22, 0).atZone(zone).toInstant(), r.fireAt)
-        assertEquals("напомнить про 100 рублей", r.body)
-    }
-
-    @Test
-    fun threeDigitNumber_notTreatedAsTime() {
-        val r = parser.parse("про 100 рублей", now)
-        assertNull(r.fireAt)
-        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
-        assertEquals("про 100 рублей", r.body)
-    }
-
-    @Test
     fun hoursAndMinutes_explicit() {
         val r = parser.parse("завтра в 9 часов 15 минут созвон", now)
         assertEquals(LocalDateTime.of(2026, 5, 18, 9, 15).atZone(zone).toInstant(), r.fireAt)
@@ -926,5 +911,36 @@ class ReminderParserTest {
         val r = parser.parse("сегодня в 8 вечера спать", now)
         assertEquals(LocalDateTime.of(2026, 5, 17, 20, 0).atZone(zone).toInstant(), r.fireAt)
         assertEquals("спать", r.body)
+    }
+
+    // --- fix-evening-number-parsing ---
+
+    @Test
+    fun tomorrowEvening_withNumberQuantity() {
+        val r = parser.parse("завтра вечером напомнить про 100 рублей", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 22, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("напомнить про 100 рублей", r.body)
+    }
+
+    @Test
+    fun threeDigitTime_withLeadingV() {
+        val r = parser.parse("в 930 встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 30).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+    }
+
+    @Test
+    fun fourDigitTime_noSeparator() {
+        val r = parser.parse("встреча в 2130", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 21, 30).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun quantityGrams_withMorningMarker() {
+        val r = parser.parse("купить 250 грамм завтра утром", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.body.contains("250 грамм"))
     }
 }

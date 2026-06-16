@@ -20,13 +20,13 @@ local.properties
 .vscode/
 *.code-workspace
 
-# Cursor
-.cursor/plans/
-
-# Windsurf
-.windsurf/*
-!.windsurf/rules/
-!.windsurf/workflows/
+## Cursor
+#.cursor/plans/
+#
+## Windsurf
+#.windsurf/*
+#!.windsurf/rules/
+#!.windsurf/workflows/
 
 # OS
 .DS_Store
