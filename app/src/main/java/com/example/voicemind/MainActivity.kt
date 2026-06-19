@@ -48,13 +48,13 @@ import com.example.voicemind.data.speech.SpeechRecognition
 import com.example.voicemind.ui.screens.ConfirmReminderScreen
 import com.example.voicemind.ui.screens.HomeScreen
 import com.example.voicemind.ui.screens.ManualReminderScreen
-import com.example.voicemind.ui.screens.ReliabilityOnboardingScreen
 import com.example.voicemind.ui.screens.ReminderDetailScreen
 import com.example.voicemind.ui.screens.ReminderListScreen
 import com.example.voicemind.ui.screens.SettingsScreen
 import com.example.voicemind.ui.theme.VoiceMindTheme
 import com.example.voicemind.ui.widget.WidgetUpdater
 import com.example.voicemind.util.ReminderPermissions
+import com.example.voicemind.viewmodel.ReliabilityIssue
 import com.example.voicemind.viewmodel.VoiceMindViewModel
 import kotlinx.coroutines.launch
 
@@ -106,8 +106,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val dismissBehavior by viewModel.dismissBehavior.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
     val requestNotificationsPermission by viewModel.requestNotificationsPermission.collectAsState()
-    val showOnboarding by viewModel.showOnboarding.collectAsState()
-    val onboardingCompleted by viewModel.onboardingCompleted.collectAsState()
     val reliabilityIssues by viewModel.reliabilityIssues.collectAsState()
     val undoReminderId by viewModel.undoReminderId.collectAsState()
 
@@ -188,9 +186,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     }
 
     LaunchedEffect(Unit) {
-        if (!onboardingCompleted) {
-            viewModel.openOnboarding()
-        }
         if (ReminderPermissions.needsPostNotificationsPermission() &&
             !ReminderPermissions.hasPostNotifications(context)
         ) {
@@ -311,7 +306,18 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         onViewAllClick = { currentDestination = AppDestinations.LIST },
                         onUpcomingClick = { viewModel.openReminderForEdit(it) },
                         reliabilityIssues = reliabilityIssues,
-                        onOpenReliabilityOnboarding = { viewModel.openOnboarding() },
+                        onFixReliability = {
+                            val firstIssue = reliabilityIssues.firstOrNull()
+                            if (firstIssue == ReliabilityIssue.NOTIFICATIONS_MISSING) {
+                                if (ReminderPermissions.needsPostNotificationsPermission() &&
+                                    !ReminderPermissions.hasPostNotifications(context)
+                                ) {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            } else if (firstIssue == ReliabilityIssue.EXACT_ALARM_MISSING) {
+                                context.startActivity(ReminderPermissions.exactAlarmSettingsIntent(context))
+                            }
+                        },
                     )
                     AppDestinations.LIST -> ReminderListScreen(
                         selectedTab = listTab,
@@ -351,7 +357,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                             }
                         },
                         onDismissBehaviorChange = { viewModel.setDismissBehavior(it) },
-                        onOpenReliabilityOnboarding = { viewModel.openOnboarding() },
+                        onCreateTestReminder = { viewModel.createTestReminder() },
                     )
                 }
             }
@@ -409,29 +415,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     onDuplicate = { viewModel.duplicateReminder(reminder) },
                 )
             }
-        }
-
-        AnimatedVisibility(
-            visible = showOnboarding,
-            enter = slideInVertically { it },
-            exit = slideOutVertically { it },
-        ) {
-            ReliabilityOnboardingScreen(
-                reliabilityIssues = reliabilityIssues,
-                onRequestNotificationPermission = {
-                    if (ReminderPermissions.needsPostNotificationsPermission() &&
-                        !ReminderPermissions.hasPostNotifications(context)
-                    ) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                },
-                onRequestExactAlarm = {
-                    context.startActivity(ReminderPermissions.exactAlarmSettingsIntent(context))
-                },
-                onCreateTestReminder = { viewModel.createTestReminder() },
-                onDismiss = { viewModel.dismissOnboarding() },
-                onComplete = { viewModel.completeOnboarding() },
-            )
         }
 
     }

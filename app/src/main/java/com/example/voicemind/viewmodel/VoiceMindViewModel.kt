@@ -120,16 +120,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _requestNotificationsPermission.value = false
     }
 
-    val onboardingCompleted = settings.onboardingCompleted
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-    private val _showOnboarding = MutableStateFlow(false)
-    val showOnboarding: StateFlow<Boolean> = _showOnboarding.asStateFlow()
-
-    fun consumeShowOnboarding() {
-        _showOnboarding.value = false
-    }
-
     private val _reliabilityIssues = MutableStateFlow<List<ReliabilityIssue>>(emptyList())
     val reliabilityIssues: StateFlow<List<ReliabilityIssue>> = _reliabilityIssues.asStateFlow()
 
@@ -142,21 +132,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             issues += ReliabilityIssue.EXACT_ALARM_MISSING
         }
         _reliabilityIssues.value = issues
-    }
-
-    fun openOnboarding() {
-        _showOnboarding.value = true
-    }
-
-    fun dismissOnboarding() {
-        _showOnboarding.value = false
-    }
-
-    fun completeOnboarding() {
-        viewModelScope.launch {
-            settings.setOnboardingCompleted(true)
-        }
-        _showOnboarding.value = false
     }
 
     fun handleIntent(intent: Intent?) {

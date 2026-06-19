@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -80,7 +81,7 @@ fun SettingsScreen(
     onRequestNotificationPermission: () -> Unit,
     onRequestFullScreenIntentPermission: () -> Unit,
     onDismissBehaviorChange: (DismissBehavior) -> Unit,
-    onOpenReliabilityOnboarding: () -> Unit,
+    onCreateTestReminder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -114,12 +115,6 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextPrimaryDark,
                     )
-                    TextButton(onClick = onOpenReliabilityOnboarding) {
-                        Text(
-                            stringResource(R.string.reliability_banner_action),
-                            color = Teal,
-                        )
-                    }
                 }
             }
         }
@@ -265,6 +260,19 @@ fun SettingsScreen(
                     isGranted = fullScreenOk,
                     onAction = onRequestFullScreenIntentPermission,
                 )
+            }
+        }
+
+        // Diagnostics Card
+        SettingsCard(title = "Диагностика") {
+            Text(
+                text = "Создать тестовое напоминание на ~60 секунд, чтобы проверить доставку.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextPrimaryDark,
+            )
+            Spacer(modifier = Modifier.height(Spacing.sm))
+            Button(onClick = onCreateTestReminder) {
+                Text(stringResource(R.string.reliability_action_test_reminder))
             }
         }
 

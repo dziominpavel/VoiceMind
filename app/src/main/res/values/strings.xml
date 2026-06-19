@@ -159,17 +159,11 @@
     <string name="widget_next_label">Следующее</string>
     <string name="widget_list_empty">Нет напоминаний</string>
 
-    <string name="reliability_onboarding_title">Надёжность напоминаний</string>
-    <string name="reliability_onboarding_subtitle">Чтобы напоминания точно срабатывали, нужно выдать несколько разрешений. Это займёт минуту.</string>
     <string name="reliability_issue_notifications_title">Уведомления</string>
     <string name="reliability_issue_notifications_desc">Без разрешения на уведомления вы не увидите напоминание</string>
     <string name="reliability_issue_exact_alarm_title">Точные будильники</string>
     <string name="reliability_issue_exact_alarm_desc">Необходимо для срабатывания в точное время</string>
     <string name="reliability_action_grant">Разрешить</string>
-    <string name="reliability_action_skip">Пропустить</string>
-    <string name="reliability_action_done">Готово</string>
-    <string name="reliability_all_good_title">Всё настроено</string>
-    <string name="reliability_all_good_desc">Все разрешения получены. Можно проверить — создать тестовое напоминание через минуту.</string>
     <string name="reliability_action_test_reminder">Проверить, что работает</string>
     <string name="reliability_banner_title">Надёжность</string>
     <string name="reliability_banner_desc">Некоторые разрешения не выданы — напоминания могут не срабатывать</string>

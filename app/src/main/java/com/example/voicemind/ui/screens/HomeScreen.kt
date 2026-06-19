@@ -68,7 +68,7 @@ fun HomeScreen(
     onViewAllClick: () -> Unit,
     onUpcomingClick: (Long) -> Unit,
     reliabilityIssues: List<ReliabilityIssue>,
-    onOpenReliabilityOnboarding: () -> Unit,
+    onFixReliability: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -154,7 +154,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextPrimaryDark,
                     )
-                    TextButton(onClick = onOpenReliabilityOnboarding) {
+                    TextButton(onClick = onFixReliability) {
                         Text(
                             stringResource(R.string.reliability_banner_action),
                             color = Teal,
