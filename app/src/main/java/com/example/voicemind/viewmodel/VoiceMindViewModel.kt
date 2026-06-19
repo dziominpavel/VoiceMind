@@ -141,9 +141,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         if (!ReminderPermissions.canScheduleExactAlarms(getApplication())) {
             issues += ReliabilityIssue.EXACT_ALARM_MISSING
         }
-        if (!ReminderPermissions.isIgnoringBatteryOptimizations(getApplication())) {
-            issues += ReliabilityIssue.BATTERY_OPTIMIZATION_NOT_IGNORED
-        }
         _reliabilityIssues.value = issues
     }
 

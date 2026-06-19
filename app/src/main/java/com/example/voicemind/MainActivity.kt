@@ -428,15 +428,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                 onRequestExactAlarm = {
                     context.startActivity(ReminderPermissions.exactAlarmSettingsIntent(context))
                 },
-                onRequestBatteryOptimization = {
-                    if (ReminderPermissions.isIgnoringBatteryOptimizations(context)) {
-                        // already granted; nothing to do
-                    } else {
-                        context.startActivity(
-                            ReminderPermissions.requestIgnoreBatteryOptimizationsIntent(context),
-                        )
-                    }
-                },
                 onCreateTestReminder = { viewModel.createTestReminder() },
                 onDismiss = { viewModel.dismissOnboarding() },
                 onComplete = { viewModel.completeOnboarding() },

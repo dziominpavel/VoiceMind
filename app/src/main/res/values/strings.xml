@@ -165,8 +165,6 @@
     <string name="reliability_issue_notifications_desc">Без разрешения на уведомления вы не увидите напоминание</string>
     <string name="reliability_issue_exact_alarm_title">Точные будильники</string>
     <string name="reliability_issue_exact_alarm_desc">Необходимо для срабатывания в точное время</string>
-    <string name="reliability_issue_battery_title">Оптимизация батареи</string>
-    <string name="reliability_issue_battery_desc">Система может "убить" приложение и напоминание не сработает</string>
     <string name="reliability_action_grant">Разрешить</string>
     <string name="reliability_action_skip">Пропустить</string>
     <string name="reliability_action_done">Готово</string>
