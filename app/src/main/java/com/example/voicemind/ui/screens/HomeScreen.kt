@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,7 @@ import com.example.voicemind.ui.theme.TextMuted
 import com.example.voicemind.ui.theme.TextPrimaryDark
 import com.example.voicemind.ui.theme.TimeDisplay
 import com.example.voicemind.ui.theme.TimeWarning
+import com.example.voicemind.viewmodel.ReliabilityIssue
 
 @Composable
 fun HomeScreen(
@@ -65,6 +67,8 @@ fun HomeScreen(
     onNextReminderClick: () -> Unit,
     onViewAllClick: () -> Unit,
     onUpcomingClick: (Long) -> Unit,
+    reliabilityIssues: List<ReliabilityIssue>,
+    onOpenReliabilityOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -127,6 +131,39 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        // Reliability Banner
+        if (reliabilityIssues.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = com.example.voicemind.ui.theme.ErrorCoral.copy(alpha = 0.12f),
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.reliability_banner_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = com.example.voicemind.ui.theme.ErrorCoral,
+                    )
+                    Text(
+                        text = stringResource(R.string.reliability_banner_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimaryDark,
+                    )
+                    TextButton(onClick = onOpenReliabilityOnboarding) {
+                        Text(
+                            stringResource(R.string.reliability_banner_action),
+                            color = Teal,
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // Upcoming Preview
         if (upcomingReminders.isNotEmpty()) {

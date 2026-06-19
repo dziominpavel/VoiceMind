@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
 import com.example.voicemind.data.DeliveryMode
+import com.example.voicemind.data.RecurrenceCalculator
+import com.example.voicemind.data.RecurrenceRule
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.SettingsRepository
@@ -52,7 +54,21 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     AlarmSoundPlayer.playVibrationOnly(context)
                 }
 
-                repo.markFiredAndShow(reminderId)
+                val rule = RecurrenceRule.parse(reminder.recurrenceRule)
+                if (rule != null) {
+                    val nextFireAt = RecurrenceCalculator.nextOccurrence(
+                        rule,
+                        System.currentTimeMillis(),
+                    )
+                    repo.updateAndSchedule(
+                        reminder.copy(
+                            fireAt = nextFireAt,
+                            status = ReminderStatus.PENDING.name,
+                        ),
+                    )
+                } else {
+                    repo.markFiredAndShow(reminderId)
+                }
             } finally {
                 wakeLock?.let {
                     if (it.isHeld) it.release()

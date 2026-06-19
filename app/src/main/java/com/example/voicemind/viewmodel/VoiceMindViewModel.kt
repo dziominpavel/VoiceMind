@@ -55,6 +55,25 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     private val _detailReminder = MutableStateFlow<Reminder?>(null)
     val detailReminder: StateFlow<Reminder?> = _detailReminder.asStateFlow()
 
+    private val _undoReminderId = MutableStateFlow<Long?>(null)
+    val undoReminderId: StateFlow<Long?> = _undoReminderId.asStateFlow()
+
+    fun consumeUndoReminderId() {
+        _undoReminderId.value = null
+    }
+
+    fun undoSave(id: Long) {
+        safeDb(getString(R.string.error_save_failed)) {
+            repository.deleteReminder(id)
+            _undoReminderId.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
+        }
+    }
+
     private val _listTab = MutableStateFlow(ReminderListTab.Upcoming)
     val listTab: StateFlow<ReminderListTab> = _listTab.asStateFlow()
 
@@ -91,6 +110,56 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun consumeFallbackToSystemSpeech() {
         _fallbackToSystemSpeech.value = false
+    }
+
+    /** Сигнал UI запросить разрешение на уведомления (выставляется при сохранении без него). */
+    private val _requestNotificationsPermission = MutableStateFlow(false)
+    val requestNotificationsPermission: StateFlow<Boolean> = _requestNotificationsPermission.asStateFlow()
+
+    fun consumeRequestNotificationsPermission() {
+        _requestNotificationsPermission.value = false
+    }
+
+    val onboardingCompleted = settings.onboardingCompleted
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _showOnboarding = MutableStateFlow(false)
+    val showOnboarding: StateFlow<Boolean> = _showOnboarding.asStateFlow()
+
+    fun consumeShowOnboarding() {
+        _showOnboarding.value = false
+    }
+
+    private val _reliabilityIssues = MutableStateFlow<List<ReliabilityIssue>>(emptyList())
+    val reliabilityIssues: StateFlow<List<ReliabilityIssue>> = _reliabilityIssues.asStateFlow()
+
+    fun checkReliability() {
+        val issues = mutableListOf<ReliabilityIssue>()
+        if (!ReminderPermissions.hasPostNotifications(getApplication())) {
+            issues += ReliabilityIssue.NOTIFICATIONS_MISSING
+        }
+        if (!ReminderPermissions.canScheduleExactAlarms(getApplication())) {
+            issues += ReliabilityIssue.EXACT_ALARM_MISSING
+        }
+        if (!ReminderPermissions.isIgnoringBatteryOptimizations(getApplication())) {
+            issues += ReliabilityIssue.BATTERY_OPTIMIZATION_NOT_IGNORED
+        }
+        _reliabilityIssues.value = issues
+    }
+
+    fun openOnboarding() {
+        _showOnboarding.value = true
+    }
+
+    fun dismissOnboarding() {
+        _showOnboarding.value = false
+    }
+
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            settings.setOnboardingCompleted(true)
+        }
+        _showOnboarding.value = false
     }
 
     fun handleIntent(intent: Intent?) {
@@ -243,11 +312,14 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     /** Сохранение после успешного голосового разбора (экран подтверждения). */
     fun confirmVoiceReminder() {
         val pending = _pendingConfirm.value ?: return
+        val wasAutoSaved = !confirmBeforeSchedule.value && canAutoSave(pending)
         saveReminder(
             body = pending.body,
             fireAtMillis = pending.fireAtMillis,
             rawPhrase = pending.rawPhrase,
             editingId = null,
+            recurrenceRule = pending.recurrenceRule,
+            onSavedId = { id -> if (wasAutoSaved && id != null) _undoReminderId.value = id },
         ) { _pendingConfirm.value = null }
     }
 
@@ -316,7 +388,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun snoozeReminder(id: Long, minutes: Int) {
         safeDb(getString(R.string.error_save_failed)) {
             val reminder = repository.getById(id) ?: return@safeDb
-            val newFireAt = reminder.fireAt + minutes * 60_000L
+            // Snooze всегда отсчитывается от текущего момента, иначе для просроченного
+            // напоминания newFireAt оставался бы в прошлом и не планировался.
+            val newFireAt = System.currentTimeMillis() + minutes * 60_000L
             repository.updateAndSchedule(
                 reminder.copy(
                     fireAt = newFireAt,
@@ -325,6 +399,74 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
             )
             _detailReminder.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
+        }
+    }
+
+    fun snoozeUntil(id: Long, fireAtMillis: Long) {
+        safeDb(getString(R.string.error_save_failed)) {
+            val reminder = repository.getById(id) ?: return@safeDb
+            repository.updateAndSchedule(
+                reminder.copy(
+                    fireAt = fireAtMillis,
+                    status = ReminderStatus.PENDING.name,
+                    snoozeCount = reminder.snoozeCount + 1,
+                ),
+            )
+            _detailReminder.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
+        }
+    }
+
+    fun stopRecurrence(id: Long) {
+        safeDb(getString(R.string.error_save_failed)) {
+            val reminder = repository.getById(id) ?: return@safeDb
+            repository.updateAndSchedule(reminder.copy(recurrenceRule = null))
+            _detailReminder.value = null
+            try {
+                WidgetUpdater.updateAll(getApplication())
+            } catch (e: Exception) {
+                Log.e(TAG, "Widget update failed", e)
+            }
+        }
+    }
+
+    /** Ближайшее наступление 09:00 строго в будущем (сегодня или завтра). */
+    fun nextMorningMillis(): Long {
+        val zone = ZoneId.systemDefault()
+        val now = java.time.ZonedDateTime.now(zone)
+        val morning = now.toLocalDate().atTime(java.time.LocalTime.of(9, 0)).atZone(zone)
+        return if (morning.isAfter(now)) {
+            morning.toInstant().toEpochMilli()
+        } else {
+            morning.plusDays(1).toInstant().toEpochMilli()
+        }
+    }
+
+    fun createTestReminder() {
+        safeDb(getString(R.string.error_save_failed)) {
+            val mode = settings.getDefaultDeliveryMode()
+            val now = System.currentTimeMillis()
+            repository.insertAndSchedule(
+                Reminder(
+                    clientId = UUID.randomUUID().toString(),
+                    fireAt = now + 60_000L,
+                    body = getString(R.string.test_reminder_body),
+                    rawPhrase = null,
+                    status = ReminderStatus.PENDING.name,
+                    createdAt = now,
+                    alarmRequestCode = 0,
+                    deliveryMode = mode.name,
+                ),
+            )
             try {
                 WidgetUpdater.updateAll(getApplication())
             } catch (e: Exception) {
@@ -373,6 +515,7 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 fireAtMillis = result.fireAt?.toEpochMilli(),
                 confidence = result.confidence,
                 warnings = result.warnings,
+                recurrenceRule = result.recurrenceRule,
             )
             if (!confirmBeforeSchedule.value && canAutoSave(pending)) {
                 _pendingConfirm.value = pending
@@ -395,6 +538,8 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         fireAtMillis: Long?,
         rawPhrase: String?,
         editingId: Long?,
+        recurrenceRule: String? = null,
+        onSavedId: ((Long?) -> Unit)? = null,
         onSuccess: () -> Unit,
     ) {
         val fireAt = fireAtMillis
@@ -410,10 +555,17 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             _errorMessage.value = getString(R.string.error_past_time)
             return
         }
+        // Независимые сигналы о разрешениях: не перетирать один другим, не сохранять «молча».
+        val permissionWarnings = mutableListOf<String>()
         if (!ReminderPermissions.hasPostNotifications(getApplication())) {
-            _errorMessage.value = getString(R.string.error_notifications_permission)
-        } else if (!ReminderPermissions.canScheduleExactAlarms(getApplication())) {
-            _errorMessage.value = getString(R.string.error_exact_alarm)
+            permissionWarnings += getString(R.string.error_notifications_permission)
+            _requestNotificationsPermission.value = true
+        }
+        if (!ReminderPermissions.canScheduleExactAlarms(getApplication())) {
+            permissionWarnings += getString(R.string.error_exact_alarm)
+        }
+        if (permissionWarnings.isNotEmpty()) {
+            _errorMessage.value = permissionWarnings.joinToString("\n")
         }
         safeDb(getString(R.string.error_save_failed)) {
             val mode = settings.getDefaultDeliveryMode()
@@ -425,11 +577,12 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                         body = body.trim(),
                         rawPhrase = rawPhrase ?: existing.rawPhrase,
                         deliveryMode = mode.name,
+                        recurrenceRule = recurrenceRule ?: existing.recurrenceRule,
                     ),
                 )
             } else {
                 val now = System.currentTimeMillis()
-                repository.insertAndSchedule(
+                val newId = repository.insertAndSchedule(
                     Reminder(
                         clientId = UUID.randomUUID().toString(),
                         fireAt = fireAt,
@@ -439,8 +592,10 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                         createdAt = now,
                         alarmRequestCode = 0,
                         deliveryMode = mode.name,
+                        recurrenceRule = recurrenceRule,
                     ),
                 )
+                onSavedId?.invoke(newId)
             }
             onSuccess()
             try {

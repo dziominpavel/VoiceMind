@@ -51,7 +51,7 @@
 ### S5. Срабатывание
 
 1. В `fireAt` срабатывает alarm.
-2. `ReminderDelivery` по настройкам напоминания или глобальному default:
+2. Доставка по **глобальному** режиму из настроек (`defaultDeliveryMode`), единому для всех напоминаний:
    - обычное уведомление (звук + heads-up),
    - «как будильник» (громче, full-screen intent, повтор),
    - только вибрация,
@@ -79,7 +79,7 @@
 | `fireAt` | Long | Epoch millis, локальная TZ устройства |
 | `body` | String | Текст напоминания («Позвонить соседу») |
 | `rawPhrase` | String? | Исходная фраза после STT |
-| `deliveryMode` | Enum | См. NOTIFICATION_MODES.md |
+| `deliveryMode` | Enum | Поле синхронизируется с глобальным `defaultDeliveryMode`; фактический режим при срабатывании берётся из настроек. См. `openspec/specs/notification-delivery` |
 | `status` | Enum | SCHEDULED, FIRED, DISMISSED, CANCELLED, SNOOZED |
 | `createdAt` | Long | |
 | `snoozeCount` | Int | Сколько раз откладывали |
@@ -99,7 +99,7 @@
 
 ## Режимы оповещения (кратко)
 
-Подробно: [NOTIFICATION_MODES.md](NOTIFICATION_MODES.md).
+Подробно: `openspec/specs/notification-delivery/spec.md`. Режим — **глобальный** (один на все напоминания), выбирается в Настройках; per-reminder пикера больше нет.
 
 | Режим | Поведение |
 |-------|-----------|
@@ -175,7 +175,7 @@
 
 ## Связанные документы
 
-- [REMINDER_PARSING.md](REMINDER_PARSING.md)
-- [NOTIFICATION_MODES.md](NOTIFICATION_MODES.md)
+- `openspec/specs/reminder-parsing/spec.md`
+- `openspec/specs/notification-delivery/spec.md`
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [FEATURE_PLAN.md](FEATURE_PLAN.md)

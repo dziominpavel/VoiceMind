@@ -6,4 +6,7 @@ enum class ParseWarning {
     NO_TIME_FOUND,
     BODY_EMPTY,
     PAST_TIME_ADJUSTED,
+    APPROXIMATE_TIME,
+    TIME_RANGE,
+    CLARIFY_DATE,
 }

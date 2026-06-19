@@ -24,6 +24,7 @@ class VoiceMindApplication : Application() {
         appScope.launch {
             val repo = ReminderRepository.getInstance(this@VoiceMindApplication)
             val settings = SettingsRepository.getInstance(this@VoiceMindApplication)
+            settings.migrateAlarmVolumeIfNeeded()
             if (!settings.isDeliveryModeSyncedV6()) {
                 val mode = settings.getDefaultDeliveryMode()
                 repo.syncAllDeliveryModes(mode)

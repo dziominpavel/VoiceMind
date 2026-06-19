@@ -35,9 +35,10 @@
     <string name="detail_delete_confirm_title">Удалить напоминание?</string>
     <string name="detail_delete_confirm_text">Это действие нельзя отменить.</string>
     <string name="detail_snooze">Отложить</string>
-    <string name="detail_snooze_10">+10 минут</string>
-    <string name="detail_snooze_30">+30 минут</string>
+    <string name="detail_snooze_5">+5 минут</string>
+    <string name="detail_snooze_15">+15 минут</string>
     <string name="detail_snooze_1h">+1 час</string>
+    <string name="detail_snooze_tomorrow_morning">Завтра утром (09:00)</string>
     <string name="detail_duplicate">Повторить</string>
     <string name="detail_cancel">Отменить</string>
     <string name="detail_done">Готово</string>
@@ -105,7 +106,11 @@
     <string name="notification_action_cancel">Отменить</string>
 
     <string name="alarm_screen_done">Готово</string>
-    <string name="alarm_screen_snooze">Отложить 10 мин</string>
+    <string name="alarm_screen_snooze_label">Отложить</string>
+    <string name="alarm_screen_snooze_5">5 мин</string>
+    <string name="alarm_screen_snooze_10">10 мин</string>
+    <string name="alarm_screen_snooze_15">15 мин</string>
+    <string name="alarm_screen_snooze_1h">1 ч</string>
     <string name="alarm_screen_cancel">Отменить</string>
 
     <string name="error_empty_phrase">Введите текст напоминания</string>
@@ -153,4 +158,37 @@
     <string name="widget_next_at">%1$s</string>
     <string name="widget_next_label">Следующее</string>
     <string name="widget_list_empty">Нет напоминаний</string>
+
+    <string name="reliability_onboarding_title">Надёжность напоминаний</string>
+    <string name="reliability_onboarding_subtitle">Чтобы напоминания точно срабатывали, нужно выдать несколько разрешений. Это займёт минуту.</string>
+    <string name="reliability_issue_notifications_title">Уведомления</string>
+    <string name="reliability_issue_notifications_desc">Без разрешения на уведомления вы не увидите напоминание</string>
+    <string name="reliability_issue_exact_alarm_title">Точные будильники</string>
+    <string name="reliability_issue_exact_alarm_desc">Необходимо для срабатывания в точное время</string>
+    <string name="reliability_issue_battery_title">Оптимизация батареи</string>
+    <string name="reliability_issue_battery_desc">Система может "убить" приложение и напоминание не сработает</string>
+    <string name="reliability_action_grant">Разрешить</string>
+    <string name="reliability_action_skip">Пропустить</string>
+    <string name="reliability_action_done">Готово</string>
+    <string name="reliability_all_good_title">Всё настроено</string>
+    <string name="reliability_all_good_desc">Все разрешения получены. Можно проверить — создать тестовое напоминание через минуту.</string>
+    <string name="reliability_action_test_reminder">Проверить, что работает</string>
+    <string name="reliability_banner_title">Надёжность</string>
+    <string name="reliability_banner_desc">Некоторые разрешения не выданы — напоминания могут не срабатывать</string>
+    <string name="reliability_banner_action">Исправить</string>
+    <string name="test_reminder_body">Проверка VoiceMind</string>
+
+    <string name="recurrence_daily">ежедневно</string>
+    <string name="recurrence_weekdays">по будням</string>
+    <string name="recurrence_weekends">по выходным</string>
+    <string name="recurrence_weekly">еженедельно</string>
+    <string name="recurrence_monthly">ежемесячно</string>
+    <string name="recurrence_label">Повтор: %1$s</string>
+    <string name="detail_stop_recurrence">Остановить повторение</string>
+
+    <string name="tile_voice_label">VoiceMind</string>
+    <string name="shortcut_voice_label">Новое напоминание (голос)</string>
+    <string name="shortcut_voice_long_label">Записать голосовое напоминание</string>
+    <string name="undo_snackbar_scheduled">Запланировано</string>
+    <string name="undo_snackbar_action">Отменить</string>
 </resources>

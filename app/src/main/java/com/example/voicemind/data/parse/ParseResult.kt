@@ -9,4 +9,5 @@ data class ParseResult(
     val warnings: List<ParseWarning>,
     val matchedTimeSpan: IntRange?,
     val rawPhrase: String,
+    val recurrenceRule: String? = null,
 )

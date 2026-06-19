@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
+import com.example.voicemind.data.RecurrenceRule
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.ui.theme.HapticType
@@ -66,6 +67,8 @@ fun ReminderDetailScreen(
     onCancel: () -> Unit,
     onComplete: () -> Unit,
     onSnooze: (minutes: Int) -> Unit,
+    onSnoozeUntil: () -> Unit,
+    onStopRecurrence: () -> Unit,
     onDuplicate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -173,6 +176,13 @@ fun ReminderDetailScreen(
                     value = phrase,
                 )
             }
+            reminder.recurrenceRule?.let { rule ->
+                val label = RecurrenceRule.parse(rule)?.toLabel() ?: rule
+                DetailRow(
+                    label = stringResource(R.string.recurrence_label, ""),
+                    value = label,
+                )
+            }
 
             Spacer(modifier = Modifier.height(Spacing.md))
             FilledTonalButton(
@@ -183,6 +193,16 @@ fun ReminderDetailScreen(
                 Icon(Icons.Default.ContentCopy, contentDescription = null)
                 Spacer(modifier = Modifier.size(Spacing.xs))
                 Text(stringResource(R.string.detail_duplicate))
+            }
+            if (reminder.recurrenceRule != null) {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                FilledTonalButton(
+                    onClick = onStopRecurrence,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = ShapePill,
+                ) {
+                    Text(stringResource(R.string.detail_stop_recurrence))
+                }
             }
         }
     }
@@ -230,7 +250,7 @@ fun ReminderDetailScreen(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                listOf(10, 30, 60).forEach { minutes ->
+                listOf(5, 15, 60).forEach { minutes ->
                     TextButton(
                         onClick = {
                             showSnoozeSheet = false
@@ -239,13 +259,25 @@ fun ReminderDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         val label = when (minutes) {
-                            10 -> stringResource(R.string.detail_snooze_10)
-                            30 -> stringResource(R.string.detail_snooze_30)
+                            5 -> stringResource(R.string.detail_snooze_5)
+                            15 -> stringResource(R.string.detail_snooze_15)
                             60 -> stringResource(R.string.detail_snooze_1h)
                             else -> "+$minutes мин"
                         }
                         Text(label, style = MaterialTheme.typography.bodyLarge)
                     }
+                }
+                TextButton(
+                    onClick = {
+                        showSnoozeSheet = false
+                        onSnoozeUntil()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        stringResource(R.string.detail_snooze_tomorrow_morning),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                 }
             }
         }

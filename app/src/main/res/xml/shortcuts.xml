@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="voice_reminder"
+        android:enabled="true"
+        android:icon="@drawable/ic_mic"
+        android:shortcutShortLabel="@string/shortcut_voice_label"
+        android:shortcutLongLabel="@string/shortcut_voice_long_label">
+        <intent
+            android:action="com.example.voicemind.ACTION_START_VOICE"
+            android:targetPackage="com.example.voicemind"
+            android:targetClass="com.example.voicemind.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -23,6 +23,8 @@ class SettingsRepository(private val context: Context) {
     private val alarmVolumeKey = intPreferencesKey("alarm_volume")
     private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
     private val deliveryModeSyncedV6Key = booleanPreferencesKey("delivery_mode_synced_v6")
+    private val alarmVolumeMigratedV2Key = booleanPreferencesKey("alarm_volume_migrated_v2")
+    private val onboardingCompletedKey = booleanPreferencesKey("onboarding_completed")
 
     // Legacy keys for one-time migration
     private val useAlarmSoundKey = booleanPreferencesKey("use_alarm_sound")
@@ -54,6 +56,10 @@ class SettingsRepository(private val context: Context) {
         prefs[dismissBehaviorKey]?.let {
             runCatching { DismissBehavior.valueOf(it) }.getOrNull()
         } ?: DismissBehavior.MARK_DONE
+    }
+
+    val onboardingCompleted: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[onboardingCompletedKey] ?: false
     }
 
     suspend fun setConfirmBeforeSchedule(enabled: Boolean) {
@@ -93,6 +99,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDismissBehavior(behavior: DismissBehavior) {
         context.settingsDataStore.edit { prefs ->
             prefs[dismissBehaviorKey] = behavior.name
+        }
+    }
+
+    suspend fun setOnboardingCompleted(completed: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[onboardingCompletedKey] = completed
         }
     }
 
@@ -138,6 +150,26 @@ class SettingsRepository(private val context: Context) {
     suspend fun markDeliveryModeSyncedV6() {
         context.settingsDataStore.edit { prefs ->
             prefs[deliveryModeSyncedV6Key] = true
+        }
+    }
+
+    /**
+     * One-time migration of the alarm volume from the legacy 0..15 slider scale to a 0..100 percent.
+     * Idempotent: runs only once (guarded by [alarmVolumeMigratedV2Key]) and only rescales values
+     * that look like the old scale (<= 15). Values already in percent (> 15) or absent (default 100)
+     * are left untouched.
+     */
+    suspend fun migrateAlarmVolumeIfNeeded() {
+        val prefs = context.settingsDataStore.data.first()
+        if (prefs[alarmVolumeMigratedV2Key] == true) {
+            return
+        }
+        val stored = prefs[alarmVolumeKey]
+        context.settingsDataStore.edit { editor ->
+            if (stored != null && stored <= 15) {
+                editor[alarmVolumeKey] = Math.round(stored / 15f * 100f).coerceIn(0, 100)
+            }
+            editor[alarmVolumeMigratedV2Key] = true
         }
     }
 
