@@ -24,7 +24,6 @@ class SettingsRepository(private val context: Context) {
     private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
     private val deliveryModeSyncedV6Key = booleanPreferencesKey("delivery_mode_synced_v6")
     private val alarmVolumeMigratedV2Key = booleanPreferencesKey("alarm_volume_migrated_v2")
-    private val onboardingCompletedKey = booleanPreferencesKey("onboarding_completed")
 
     // Legacy keys for one-time migration
     private val useAlarmSoundKey = booleanPreferencesKey("use_alarm_sound")
@@ -56,10 +55,6 @@ class SettingsRepository(private val context: Context) {
         prefs[dismissBehaviorKey]?.let {
             runCatching { DismissBehavior.valueOf(it) }.getOrNull()
         } ?: DismissBehavior.MARK_DONE
-    }
-
-    val onboardingCompleted: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
-        prefs[onboardingCompletedKey] ?: false
     }
 
     suspend fun setConfirmBeforeSchedule(enabled: Boolean) {
@@ -99,12 +94,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDismissBehavior(behavior: DismissBehavior) {
         context.settingsDataStore.edit { prefs ->
             prefs[dismissBehaviorKey] = behavior.name
-        }
-    }
-
-    suspend fun setOnboardingCompleted(completed: Boolean) {
-        context.settingsDataStore.edit { prefs ->
-            prefs[onboardingCompletedKey] = completed
         }
     }
 
