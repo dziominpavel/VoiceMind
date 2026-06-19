@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Verified
@@ -36,7 +35,6 @@ fun ReliabilityOnboardingScreen(
     reliabilityIssues: List<ReliabilityIssue>,
     onRequestNotificationPermission: () -> Unit,
     onRequestExactAlarm: () -> Unit,
-    onRequestBatteryOptimization: () -> Unit,
     onCreateTestReminder: () -> Unit,
     onDismiss: () -> Unit,
     onComplete: () -> Unit,
@@ -83,14 +81,6 @@ fun ReliabilityOnboardingScreen(
                             description = stringResource(R.string.reliability_issue_exact_alarm_desc),
                             actionLabel = stringResource(R.string.reliability_action_grant),
                             onAction = onRequestExactAlarm,
-                        )
-
-                        ReliabilityIssue.BATTERY_OPTIMIZATION_NOT_IGNORED -> IssueCard(
-                            icon = Icons.Default.BatteryAlert,
-                            title = stringResource(R.string.reliability_issue_battery_title),
-                            description = stringResource(R.string.reliability_issue_battery_desc),
-                            actionLabel = stringResource(R.string.reliability_action_grant),
-                            onAction = onRequestBatteryOptimization,
                         )
                     }
                 }

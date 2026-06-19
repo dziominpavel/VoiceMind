@@ -257,18 +257,6 @@ fun SettingsScreen(
                 onAction = onRequestNotificationPermission,
             )
 
-            val batteryOk = ReminderPermissions.isIgnoringBatteryOptimizations(context)
-            PermissionCard(
-                title = "Оптимизация батареи",
-                subtitle = if (batteryOk) "Исключено" else "Требуется исключение из оптимизации",
-                isGranted = batteryOk,
-                onAction = {
-                    context.startActivity(
-                        ReminderPermissions.requestIgnoreBatteryOptimizationsIntent(context),
-                    )
-                },
-            )
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 val fullScreenOk = ReminderPermissions.hasUseFullScreenIntent(context)
                 PermissionCard(
