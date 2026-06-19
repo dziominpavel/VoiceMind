@@ -33,7 +33,8 @@ VoiceMind/
 │   │   │   └── notification/    # Channels, ReminderNotifier
 │   │   ├── viewmodel/           # VoiceMindViewModel + state classes
 │   │   ├── ui/
-│   │   │   ├── components/      # DeliveryModePicker
+│   │   │   ├── components/      # DateTimeField, EmptyState, MicButton, SwipeToRevealBox, WarningCard
+│   │   │   ├── widget/          # Glance-виджет (mic + ближайшее)
 │   │   │   ├── navigation/      # AppDestination
 │   │   │   ├── screens/         # Home, Confirm, Manual, List, Detail, Settings
 │   │   │   └── theme/           # Color, Theme, Dimens

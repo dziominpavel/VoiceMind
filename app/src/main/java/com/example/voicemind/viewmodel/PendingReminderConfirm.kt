@@ -8,4 +8,5 @@ data class PendingReminderConfirm(
     val fireAtMillis: Long?,
     val confidence: Float,
     val warnings: List<ParseWarning>,
+    val recurrenceRule: String? = null,
 )

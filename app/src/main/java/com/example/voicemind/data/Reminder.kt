@@ -22,4 +22,6 @@ data class Reminder(
     val snoozeCount: Int = 0,
     val alarmRequestCode: Int = 0,
     val deliveryMode: String = DeliveryMode.NOTIFICATION.name,
+    val recurrenceRule: String? = null,
+    val recurrenceInterval: Int = 1,
 )

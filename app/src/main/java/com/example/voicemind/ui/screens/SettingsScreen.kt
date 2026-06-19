@@ -50,6 +50,7 @@ import com.example.voicemind.R
 import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.DismissBehavior
 import com.example.voicemind.ui.theme.ErrorCoral
+import com.example.voicemind.viewmodel.ReliabilityIssue
 import com.example.voicemind.ui.theme.HapticType
 import com.example.voicemind.ui.theme.NeoWaveHaptics
 import com.example.voicemind.ui.theme.Spacing
@@ -70,6 +71,7 @@ fun SettingsScreen(
     alarmRingtoneUri: String?,
     alarmVolume: Int,
     dismissBehavior: DismissBehavior,
+    reliabilityIssues: List<ReliabilityIssue>,
     onConfirmBeforeScheduleChange: (Boolean) -> Unit,
     onDefaultDeliveryModeChange: (DeliveryMode) -> Unit,
     onUseVibrationChange: (Boolean) -> Unit,
@@ -78,6 +80,7 @@ fun SettingsScreen(
     onRequestNotificationPermission: () -> Unit,
     onRequestFullScreenIntentPermission: () -> Unit,
     onDismissBehaviorChange: (DismissBehavior) -> Unit,
+    onOpenReliabilityOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -89,6 +92,38 @@ fun SettingsScreen(
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
+        // Reliability Card
+        if (reliabilityIssues.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = ErrorCoral.copy(alpha = 0.12f),
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(Spacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Text(
+                        text = stringResource(R.string.reliability_banner_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = ErrorCoral,
+                    )
+                    Text(
+                        text = stringResource(R.string.reliability_banner_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimaryDark,
+                    )
+                    TextButton(onClick = onOpenReliabilityOnboarding) {
+                        Text(
+                            stringResource(R.string.reliability_banner_action),
+                            color = Teal,
+                        )
+                    }
+                }
+            }
+        }
+
         // Default Delivery Mode Card
         SettingsCard(title = stringResource(R.string.settings_delivery_mode_title)) {
             // 1. Будильник (ALARM + vibrate)
@@ -220,6 +255,18 @@ fun SettingsScreen(
                 subtitle = if (notificationsOk) "Разрешены" else "Не разрешены",
                 isGranted = notificationsOk,
                 onAction = onRequestNotificationPermission,
+            )
+
+            val batteryOk = ReminderPermissions.isIgnoringBatteryOptimizations(context)
+            PermissionCard(
+                title = "Оптимизация батареи",
+                subtitle = if (batteryOk) "Исключено" else "Требуется исключение из оптимизации",
+                isGranted = batteryOk,
+                onAction = {
+                    context.startActivity(
+                        ReminderPermissions.requestIgnoreBatteryOptimizationsIntent(context),
+                    )
+                },
             )
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -457,8 +504,8 @@ private fun AlarmVolumeSlider(
         Slider(
             value = volume.toFloat(),
             onValueChange = { onVolumeChange(it.toInt()) },
-            valueRange = 0f..15f,
-            steps = 14,
+            valueRange = 0f..100f,
+            steps = 19,
         )
     }
 }

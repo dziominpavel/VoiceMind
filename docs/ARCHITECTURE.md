@@ -72,7 +72,11 @@ com.example.voicemind/
 │   │   ├── ReminderDateTimeDialogs.kt
 │   │   └── SettingsScreen.kt
 │   ├── components/
-│   │   └── DeliveryModePicker.kt
+│   │   ├── DateTimeField.kt
+│   │   ├── EmptyState.kt
+│   │   ├── MicButton.kt
+│   │   ├── SwipeToRevealBox.kt
+│   │   └── WarningCard.kt
 │   └── theme/
 │       ├── Color.kt
 │       ├── Theme.kt
@@ -121,9 +125,11 @@ sequenceDiagram
 - `manualDraft` — ручной ввод / fallback
 - `detailReminder` — просмотр/редактирование из списка
 - `listTab` — Upcoming / History
-- `defaultDeliveryMode` — из DataStore
+- `defaultDeliveryMode` — из DataStore (**глобальный** режим доставки, единый для всех)
+- `useVibration` / `alarmRingtoneUri` / `alarmVolume` / `dismissBehavior` — из DataStore
 - `confirmBeforeSchedule` — из DataStore
 - `fallbackToSystemSpeech` — флаг fallback на системный диалог
+- `requestNotificationsPermission` — сигнал UI запросить разрешение на уведомления
 - `errorMessage`
 
 **Методы:**
@@ -222,6 +228,6 @@ class ReminderScheduler(context: Context) {
 
 ## Связанные документы
 
-- [REMINDER_PARSING.md](REMINDER_PARSING.md)
-- [NOTIFICATION_MODES.md](NOTIFICATION_MODES.md)
+- `openspec/specs/reminder-parsing/spec.md`
+- `openspec/specs/notification-delivery/spec.md`
 - [FEATURE_PLAN.md](FEATURE_PLAN.md)

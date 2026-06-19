@@ -7,6 +7,8 @@ import com.example.voicemind.ui.widget.WidgetUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private fun Long.requestCode(): Int = (this and 0x7FFFFFFF).toInt()
+
 class ReminderRepository(context: Context) {
 
     private val appContext = context.applicationContext
@@ -88,7 +90,18 @@ class ReminderRepository(context: Context) {
     }
 
     suspend fun rescheduleAll() = withContext(Dispatchers.IO) {
-        scheduler.rescheduleAll(dao.getAllScheduled())
+        val now = System.currentTimeMillis()
+        val reminders = dao.getAllScheduled()
+        val updated = reminders.map { reminder ->
+            val rule = RecurrenceRule.parse(reminder.recurrenceRule)
+            if (rule != null && reminder.fireAt <= now) {
+                val nextFireAt = RecurrenceCalculator.nextOccurrence(rule, now)
+                reminder.copy(fireAt = nextFireAt).also { dao.update(it) }
+            } else {
+                reminder
+            }
+        }
+        scheduler.rescheduleAll(updated)
     }
 
     fun observeUpcoming() = dao.observeUpcomingScheduled()
@@ -101,6 +114,12 @@ class ReminderRepository(context: Context) {
 
     suspend fun syncAllDeliveryModes(mode: DeliveryMode) = withContext(Dispatchers.IO) {
         dao.updateAllDeliveryModes(mode.name)
+    }
+
+    suspend fun stopRecurrence(id: Long) = withContext(Dispatchers.IO) {
+        val reminder = dao.getById(id) ?: return@withContext
+        dao.update(reminder.copy(recurrenceRule = null))
+        WidgetUpdater.updateAll(appContext)
     }
 
     suspend fun updateAndSchedule(reminder: Reminder) = withContext(Dispatchers.IO) {
@@ -128,5 +147,3 @@ class ReminderRepository(context: Context) {
             }
     }
 }
-
-private fun Long.requestCode(): Int = (this and 0x7FFFFFFF).toInt()

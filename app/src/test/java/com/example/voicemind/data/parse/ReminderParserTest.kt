@@ -1,5 +1,7 @@
 package com.example.voicemind.data.parse
 
+import com.example.voicemind.data.RecurrenceRule
+import com.example.voicemind.data.RecurrenceType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -148,7 +150,7 @@ class ReminderParserTest {
     @Test
     fun afternoon_partOfDay() {
         val r = parser.parse("завтра днём обед с коллегами", now)
-        assertEquals(LocalDateTime.of(2026, 5, 18, 13, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 14, 0).atZone(zone).toInstant(), r.fireAt)
     }
 
     @Test
@@ -308,7 +310,7 @@ class ReminderParserTest {
     @Test
     fun standaloneEvening() {
         val r = parser.parse("сегодня вечером фильм", now)
-        assertEquals(LocalDateTime.of(2026, 5, 17, 22, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 19, 0).atZone(zone).toInstant(), r.fireAt)
         assertEquals("фильм", r.body)
     }
 
@@ -644,6 +646,88 @@ class ReminderParserTest {
         assertEquals("праздник", r.body)
     }
 
+    @Test
+    fun nominativeMarch_withTime() {
+        val r = parser.parse("5 март в 10:00 дело", now)
+        // now = 17 мая 2026; 5 марта 2026 уже прошло → 5 марта 2027
+        assertEquals(LocalDateTime.of(2027, 3, 5, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("дело", r.body)
+    }
+
+    @Test
+    fun nominativeAugust_withYear() {
+        val r = parser.parse("12 август 2026 в 9:00 праздник", now)
+        assertEquals(LocalDateTime.of(2026, 8, 12, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("праздник", r.body)
+    }
+
+    @Test
+    fun nominativeJanuary_withTime() {
+        val r = parser.parse("10 январь в 8:00 работа", now)
+        // now = 17 мая 2026; 10 января 2026 уже прошло → 10 января 2027
+        assertEquals(LocalDateTime.of(2027, 1, 10, 8, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("работа", r.body)
+    }
+
+    @Test
+    fun nominativeFebruary_withTime() {
+        val r = parser.parse("15 февраль в 12:00 встреча", now)
+        assertEquals(LocalDateTime.of(2027, 2, 15, 12, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun nominativeApril_withTime() {
+        val r = parser.parse("20 апрель в 14:00 звонок", now)
+        assertEquals(LocalDateTime.of(2027, 4, 20, 14, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("звонок", r.body)
+    }
+
+    @Test
+    fun nominativeJuly_withTime() {
+        val r = parser.parse("1 июль в 9:00 старт", now)
+        assertEquals(LocalDateTime.of(2026, 7, 1, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("старт", r.body)
+    }
+
+    @Test
+    fun nominativeSeptember_withTime() {
+        val r = parser.parse("3 сентябрь в 11:00 школа", now)
+        assertEquals(LocalDateTime.of(2026, 9, 3, 11, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("школа", r.body)
+    }
+
+    @Test
+    fun nominativeOctober_withTime() {
+        val r = parser.parse("7 октябрь в 16:00 концерт", now)
+        assertEquals(LocalDateTime.of(2026, 10, 7, 16, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("концерт", r.body)
+    }
+
+    @Test
+    fun nominativeNovember_withTime() {
+        val r = parser.parse("2 ноябрь в 7:00 выборы", now)
+        assertEquals(LocalDateTime.of(2026, 11, 2, 7, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("выборы", r.body)
+    }
+
+    @Test
+    fun unrecognizedMonthName_notDecember() {
+        val r = parser.parse("5 абракадабра в 10:00 дело", now)
+        // Нераспознанное имя месяца не должно создавать декабрь.
+        // «абракадабра» не входит в regex — дата не извлекается,
+        // но время «10:00» извлекается → fireAt = сегодня 10:00.
+        // Body должен сохранить «5 абракадабра» (только span времени удаляется).
+        assertEquals(
+            LocalDateTime.of(2026, 5, 17, 10, 0).atZone(zone).toInstant(),
+            r.fireAt,
+        )
+        assertTrue("Body должен сохранить нераспознанное слово", r.body.contains("абракадабра"))
+        // Ключевое: fireAt не должен указывать на 5 декабря.
+        val december5 = LocalDateTime.of(2026, 12, 5, 10, 0).atZone(zone).toInstant()
+        assertTrue("fireAt не должен быть 5 декабря", r.fireAt != december5)
+    }
+
     // --- Next weekday (2.1–2.5) ---
 
     @Test
@@ -857,7 +941,7 @@ class ReminderParserTest {
     @Test
     fun standaloneDayMarker() {
         val r = parser.parse("днём забрать посылку", now)
-        assertEquals(LocalDateTime.of(2026, 5, 17, 13, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 14, 0).atZone(zone).toInstant(), r.fireAt)
         assertEquals("забрать посылку", r.body)
     }
 
@@ -918,7 +1002,7 @@ class ReminderParserTest {
     @Test
     fun tomorrowEvening_withNumberQuantity() {
         val r = parser.parse("завтра вечером напомнить про 100 рублей", now)
-        assertEquals(LocalDateTime.of(2026, 5, 18, 22, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 19, 0).atZone(zone).toInstant(), r.fireAt)
         assertEquals("напомнить про 100 рублей", r.body)
     }
 
@@ -942,5 +1026,208 @@ class ReminderParserTest {
         val r = parser.parse("купить 250 грамм завтра утром", now)
         assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
         assertTrue(r.body.contains("250 грамм"))
+    }
+
+    @Test
+    fun daily_recurrence() {
+        val r = parser.parse("каждый день в 8 принять таблетки", now)
+        assertNotNull(r.fireAt)
+        val rule = RecurrenceRule.parse(r.recurrenceRule)
+        assertEquals(RecurrenceType.DAILY, rule?.type)
+        assertEquals("принять таблетки", r.body)
+    }
+
+    @Test
+    fun weekdays_recurrence() {
+        val r = parser.parse("по будням в 9 созвон", now)
+        assertNotNull(r.fireAt)
+        val rule = RecurrenceRule.parse(r.recurrenceRule)
+        assertEquals(RecurrenceType.WEEKDAYS, rule?.type)
+        assertEquals("созвон", r.body)
+    }
+
+    @Test
+    fun weekends_recurrence() {
+        val r = parser.parse("по выходным в 10 пробежка", now)
+        assertNotNull(r.fireAt)
+        val rule = RecurrenceRule.parse(r.recurrenceRule)
+        assertEquals(RecurrenceType.WEEKENDS, rule?.type)
+        assertEquals("пробежка", r.body)
+    }
+
+    @Test
+    fun weekly_recurrence() {
+        val r = parser.parse("каждый понедельник в 7 тренировка", now)
+        assertNotNull(r.fireAt)
+        val rule = RecurrenceRule.parse(r.recurrenceRule)
+        assertEquals(RecurrenceType.WEEKLY, rule?.type)
+        assertEquals(1, rule?.dayOfWeek)
+        assertEquals("тренировка", r.body)
+    }
+
+    @Test
+    fun monthly_recurrence() {
+        val r = parser.parse("каждое 15 число в 12 отчёт", now)
+        assertNotNull(r.fireAt)
+        val rule = RecurrenceRule.parse(r.recurrenceRule)
+        assertEquals(RecurrenceType.MONTHLY, rule?.type)
+        assertEquals(15, rule?.dayOfMonth)
+        assertEquals("отчёт", r.body)
+    }
+
+    @Test
+    fun noRecurrence_nullRule() {
+        val r = parser.parse("завтра в 9:00 позвонить соседу", now)
+        assertNull(r.recurrenceRule)
+    }
+
+    // === Слова-числа ===
+
+    @Test
+    fun wordNumber_kFive_pm() {
+        val r = parser.parse("к пяти купить хлеб", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(17, dt.hour)
+        assertEquals(0, dt.minute)
+        assertTrue(r.confidence < 1.0f)
+        assertTrue(r.warnings.contains(ParseWarning.APPROXIMATE_TIME))
+        assertEquals("купить хлеб", r.body)
+    }
+
+    @Test
+    fun wordNumber_cherezDvaChasa() {
+        val r = parser.parse("через два часа позвонить маме", now)
+        assertNotNull(r.fireAt)
+        val expected = now.plusSeconds(2 * 3600L)
+        assertEquals(expected, r.fireAt)
+        assertEquals("позвонить маме", r.body)
+    }
+
+    @Test
+    fun wordNumber_naDvadcatTretie() {
+        val r = parser.parse("на двадцать третье встреча", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(23, dt.dayOfMonth)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun wordNumber_naPervoe() {
+        val r = parser.parse("на первое отпуск", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(1, dt.dayOfMonth)
+        assertEquals("отпуск", r.body)
+    }
+
+    // === Полудницы ===
+
+    @Test
+    fun partOfDay_zavtraVecherom() {
+        val r = parser.parse("завтра вечером позвонить", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(18, dt.dayOfMonth) // tomorrow = 2026-05-18
+        assertEquals(19, dt.hour)
+        assertTrue(r.warnings.contains(ParseWarning.APPROXIMATE_TIME))
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun partOfDay_vObed_todayNotPassed() {
+        // now = 10:00, обед = 13:00 — ещё не прошло
+        val r = parser.parse("в обед встреча", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(17, dt.dayOfMonth) // today
+        assertEquals(13, dt.hour)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun partOfDay_vObed_todayPassed() {
+        // now = 15:00, обед = 13:00 — прошло → завтра
+        val afternoon = LocalDateTime.of(2026, 5, 17, 15, 0).atZone(zone).toInstant()
+        val r = parser.parse("в обед встреча", afternoon)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(18, dt.dayOfMonth) // tomorrow
+        assertEquals(13, dt.hour)
+    }
+
+    @Test
+    fun partOfDay_utrom() {
+        val r = parser.parse("утром пробежка", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        // now = 10:00, утро = 09:00 — прошло → завтра
+        assertEquals(18, dt.dayOfMonth)
+        assertEquals(9, dt.hour)
+        assertEquals("пробежка", r.body)
+    }
+
+    // === Приблизительное время ===
+
+    @Test
+    fun approx_okoloSemi() {
+        val r = parser.parse("около семи зайти в магазин", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(19, dt.hour)
+        assertTrue(r.warnings.contains(ParseWarning.APPROXIMATE_TIME))
+        assertTrue(r.confidence < 1.0f)
+        assertEquals("зайти в магазин", r.body)
+    }
+
+    @Test
+    fun approx_primemernoVVosem() {
+        val r = parser.parse("примерно в восемь совещание", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(8, dt.hour)
+        assertTrue(r.warnings.contains(ParseWarning.APPROXIMATE_TIME))
+        assertTrue(r.confidence < 1.0f)
+        assertEquals("совещание", r.body)
+    }
+
+    // === Диапазоны ===
+
+    @Test
+    fun range_sPyatiDoSemi() {
+        val r = parser.parse("с пяти до семи встреча", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(17, dt.hour) // начало диапазона, PM
+        assertTrue(r.warnings.contains(ParseWarning.TIME_RANGE))
+        assertTrue(r.confidence < 1.0f)
+        assertEquals("встреча", r.body)
+    }
+
+    @Test
+    fun range_sDevyatiDoOdinnadcati() {
+        val r = parser.parse("с девяти до одиннадцати работа", now)
+        assertNotNull(r.fireAt)
+        val dt = r.fireAt!!.atZone(zone)
+        assertEquals(21, dt.hour) // 9 + 12 = 21, PM
+        assertTrue(r.warnings.contains(ParseWarning.TIME_RANGE))
+        assertEquals("работа", r.body)
+    }
+
+    // === Праздники/события (placeholder) ===
+
+    @Test
+    fun holiday_denRozhdeniya() {
+        val r = parser.parse("на день рождения купить подарок", now)
+        assertTrue(r.warnings.contains(ParseWarning.CLARIFY_DATE))
+        assertTrue(r.confidence <= 0.3f)
+    }
+
+    @Test
+    fun holiday_novyiGod() {
+        val r = parser.parse("на новый год подготовить тост", now)
+        assertTrue(r.warnings.contains(ParseWarning.CLARIFY_DATE))
+        assertTrue(r.confidence <= 0.3f)
     }
 }

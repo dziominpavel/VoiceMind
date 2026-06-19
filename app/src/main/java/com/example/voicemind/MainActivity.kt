@@ -25,8 +25,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
@@ -46,6 +48,7 @@ import com.example.voicemind.data.speech.SpeechRecognition
 import com.example.voicemind.ui.screens.ConfirmReminderScreen
 import com.example.voicemind.ui.screens.HomeScreen
 import com.example.voicemind.ui.screens.ManualReminderScreen
+import com.example.voicemind.ui.screens.ReliabilityOnboardingScreen
 import com.example.voicemind.ui.screens.ReminderDetailScreen
 import com.example.voicemind.ui.screens.ReminderListScreen
 import com.example.voicemind.ui.screens.SettingsScreen
@@ -76,6 +79,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        viewModel.checkReliability()
         lifecycleScope.launch {
             WidgetUpdater.updateAll(applicationContext)
         }
@@ -101,6 +105,11 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val alarmVolume by viewModel.alarmVolume.collectAsState()
     val dismissBehavior by viewModel.dismissBehavior.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
+    val requestNotificationsPermission by viewModel.requestNotificationsPermission.collectAsState()
+    val showOnboarding by viewModel.showOnboarding.collectAsState()
+    val onboardingCompleted by viewModel.onboardingCompleted.collectAsState()
+    val reliabilityIssues by viewModel.reliabilityIssues.collectAsState()
+    val undoReminderId by viewModel.undoReminderId.collectAsState()
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -179,6 +188,9 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     }
 
     LaunchedEffect(Unit) {
+        if (!onboardingCompleted) {
+            viewModel.openOnboarding()
+        }
         if (ReminderPermissions.needsPostNotificationsPermission() &&
             !ReminderPermissions.hasPostNotifications(context)
         ) {
@@ -201,10 +213,35 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
         }
     }
 
+    LaunchedEffect(requestNotificationsPermission) {
+        if (requestNotificationsPermission) {
+            viewModel.consumeRequestNotificationsPermission()
+            if (ReminderPermissions.needsPostNotificationsPermission() &&
+                !ReminderPermissions.hasPostNotifications(context)
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(undoReminderId) {
+        val id = undoReminderId ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = context.getString(R.string.undo_snackbar_scheduled),
+            actionLabel = context.getString(R.string.undo_snackbar_action),
+            duration = SnackbarDuration.Short,
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.undoSave(id)
+        } else {
+            viewModel.consumeUndoReminderId()
         }
     }
 
@@ -273,6 +310,8 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         },
                         onViewAllClick = { currentDestination = AppDestinations.LIST },
                         onUpcomingClick = { viewModel.openReminderForEdit(it) },
+                        reliabilityIssues = reliabilityIssues,
+                        onOpenReliabilityOnboarding = { viewModel.openOnboarding() },
                     )
                     AppDestinations.LIST -> ReminderListScreen(
                         selectedTab = listTab,
@@ -297,6 +336,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         alarmRingtoneUri = alarmRingtoneUri,
                         alarmVolume = alarmVolume,
                         dismissBehavior = dismissBehavior,
+                        reliabilityIssues = reliabilityIssues,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                         onAlarmVolumeChange = { viewModel.setAlarmVolume(it) },
                         onDefaultDeliveryModeChange = { viewModel.setDefaultDeliveryMode(it) },
@@ -311,6 +351,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                             }
                         },
                         onDismissBehaviorChange = { viewModel.setDismissBehavior(it) },
+                        onOpenReliabilityOnboarding = { viewModel.openOnboarding() },
                     )
                 }
             }
@@ -363,9 +404,43 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                     onCancel = { viewModel.cancelReminder(reminder.id) },
                     onComplete = { viewModel.completeReminder(reminder.id) },
                     onSnooze = { minutes -> viewModel.snoozeReminder(reminder.id, minutes) },
+                    onSnoozeUntil = { viewModel.snoozeUntil(reminder.id, viewModel.nextMorningMillis()) },
+                    onStopRecurrence = { viewModel.stopRecurrence(reminder.id) },
                     onDuplicate = { viewModel.duplicateReminder(reminder) },
                 )
             }
+        }
+
+        AnimatedVisibility(
+            visible = showOnboarding,
+            enter = slideInVertically { it },
+            exit = slideOutVertically { it },
+        ) {
+            ReliabilityOnboardingScreen(
+                reliabilityIssues = reliabilityIssues,
+                onRequestNotificationPermission = {
+                    if (ReminderPermissions.needsPostNotificationsPermission() &&
+                        !ReminderPermissions.hasPostNotifications(context)
+                    ) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
+                onRequestExactAlarm = {
+                    context.startActivity(ReminderPermissions.exactAlarmSettingsIntent(context))
+                },
+                onRequestBatteryOptimization = {
+                    if (ReminderPermissions.isIgnoringBatteryOptimizations(context)) {
+                        // already granted; nothing to do
+                    } else {
+                        context.startActivity(
+                            ReminderPermissions.requestIgnoreBatteryOptimizationsIntent(context),
+                        )
+                    }
+                },
+                onCreateTestReminder = { viewModel.createTestReminder() },
+                onDismiss = { viewModel.dismissOnboarding() },
+                onComplete = { viewModel.completeOnboarding() },
+            )
         }
 
     }

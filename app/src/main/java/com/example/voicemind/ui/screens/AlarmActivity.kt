@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -66,9 +67,9 @@ class AlarmActivity : ComponentActivity() {
                         viewModel.completeReminder(reminderId)
                         finish()
                     },
-                    onSnooze = {
+                    onSnooze = { minutes ->
                         AlarmSoundPlayer.stop(this)
-                        viewModel.snoozeReminder(reminderId, 10)
+                        viewModel.snoozeReminder(reminderId, minutes)
                         finish()
                     },
                     onCancel = {
@@ -109,7 +110,7 @@ fun AlarmScreen(
     body: String,
     fireAt: Long,
     onDone: () -> Unit,
-    onSnooze: () -> Unit,
+    onSnooze: (minutes: Int) -> Unit,
     onCancel: () -> Unit,
 ) {
     Column(
@@ -149,16 +150,33 @@ fun AlarmScreen(
             )
         }
         Spacer(modifier = Modifier.height(Spacing.md))
-        OutlinedButton(
-            onClick = onSnooze,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(ComponentSize.saveButtonHeight),
+        Text(
+            text = stringResource(R.string.alarm_screen_snooze_label),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Text(
-                text = stringResource(R.string.alarm_screen_snooze),
-                style = MaterialTheme.typography.titleMedium,
-            )
+            listOf(5, 10, 15, 60).forEach { minutes ->
+                OutlinedButton(
+                    onClick = { onSnooze(minutes) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = when (minutes) {
+                            5 -> stringResource(R.string.alarm_screen_snooze_5)
+                            10 -> stringResource(R.string.alarm_screen_snooze_10)
+                            15 -> stringResource(R.string.alarm_screen_snooze_15)
+                            60 -> stringResource(R.string.alarm_screen_snooze_1h)
+                            else -> "+$minutes"
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
         }
         Spacer(modifier = Modifier.height(Spacing.md))
         OutlinedButton(

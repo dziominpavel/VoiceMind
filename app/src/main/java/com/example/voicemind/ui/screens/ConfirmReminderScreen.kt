@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
+import com.example.voicemind.data.RecurrenceRule
 import com.example.voicemind.data.parse.ParseWarning
 import com.example.voicemind.ui.components.WarningCard
 import com.example.voicemind.ui.theme.ComponentSize
@@ -153,6 +154,16 @@ fun ConfirmReminderScreen(
                 style = TimeDisplay,
                 color = TextPrimaryDark,
             )
+
+            // Recurrence indicator
+            pending.recurrenceRule?.let { rule ->
+                val label = RecurrenceRule.parse(rule)?.toLabel() ?: rule
+                Text(
+                    text = stringResource(R.string.recurrence_label, label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Teal,
+                )
+            }
 
             // Quick Chips
             QuickDateTimeChipsRow(
@@ -322,5 +333,8 @@ private fun warningText(warning: ParseWarning): String? = when (warning) {
     ParseWarning.NO_TIME_FOUND -> stringResource(R.string.warning_no_time)
     ParseWarning.BODY_EMPTY -> stringResource(R.string.warning_body_empty)
     ParseWarning.PAST_TIME_ADJUSTED -> stringResource(R.string.warning_past_adjusted)
+    ParseWarning.APPROXIMATE_TIME,
+    ParseWarning.TIME_RANGE,
+    ParseWarning.CLARIFY_DATE -> null
 }
 
