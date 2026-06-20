@@ -54,7 +54,6 @@ import com.example.voicemind.ui.screens.SettingsScreen
 import com.example.voicemind.ui.theme.VoiceMindTheme
 import com.example.voicemind.ui.widget.WidgetUpdater
 import com.example.voicemind.util.ReminderPermissions
-import com.example.voicemind.viewmodel.ReliabilityIssue
 import com.example.voicemind.viewmodel.VoiceMindViewModel
 import kotlinx.coroutines.launch
 
@@ -79,7 +78,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        viewModel.checkReliability()
         lifecycleScope.launch {
             WidgetUpdater.updateAll(applicationContext)
         }
@@ -106,7 +104,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val dismissBehavior by viewModel.dismissBehavior.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
     val requestNotificationsPermission by viewModel.requestNotificationsPermission.collectAsState()
-    val reliabilityIssues by viewModel.reliabilityIssues.collectAsState()
     val undoReminderId by viewModel.undoReminderId.collectAsState()
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
@@ -305,19 +302,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         },
                         onViewAllClick = { currentDestination = AppDestinations.LIST },
                         onUpcomingClick = { viewModel.openReminderForEdit(it) },
-                        reliabilityIssues = reliabilityIssues,
-                        onFixReliability = {
-                            val firstIssue = reliabilityIssues.firstOrNull()
-                            if (firstIssue == ReliabilityIssue.NOTIFICATIONS_MISSING) {
-                                if (ReminderPermissions.needsPostNotificationsPermission() &&
-                                    !ReminderPermissions.hasPostNotifications(context)
-                                ) {
-                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            } else if (firstIssue == ReliabilityIssue.EXACT_ALARM_MISSING) {
-                                context.startActivity(ReminderPermissions.exactAlarmSettingsIntent(context))
-                            }
-                        },
                     )
                     AppDestinations.LIST -> ReminderListScreen(
                         selectedTab = listTab,
@@ -342,7 +326,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         alarmRingtoneUri = alarmRingtoneUri,
                         alarmVolume = alarmVolume,
                         dismissBehavior = dismissBehavior,
-                        reliabilityIssues = reliabilityIssues,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                         onAlarmVolumeChange = { viewModel.setAlarmVolume(it) },
                         onDefaultDeliveryModeChange = { viewModel.setDefaultDeliveryMode(it) },
@@ -357,7 +340,6 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                             }
                         },
                         onDismissBehaviorChange = { viewModel.setDismissBehavior(it) },
-                        onCreateTestReminder = { viewModel.createTestReminder() },
                     )
                 }
             }

@@ -159,17 +159,6 @@
     <string name="widget_next_label">Следующее</string>
     <string name="widget_list_empty">Нет напоминаний</string>
 
-    <string name="reliability_issue_notifications_title">Уведомления</string>
-    <string name="reliability_issue_notifications_desc">Без разрешения на уведомления вы не увидите напоминание</string>
-    <string name="reliability_issue_exact_alarm_title">Точные будильники</string>
-    <string name="reliability_issue_exact_alarm_desc">Необходимо для срабатывания в точное время</string>
-    <string name="reliability_action_grant">Разрешить</string>
-    <string name="reliability_action_test_reminder">Проверить, что работает</string>
-    <string name="reliability_banner_title">Надёжность</string>
-    <string name="reliability_banner_desc">Некоторые разрешения не выданы — напоминания могут не срабатывать</string>
-    <string name="reliability_banner_action">Исправить</string>
-    <string name="test_reminder_body">Проверка VoiceMind</string>
-
     <string name="recurrence_daily">ежедневно</string>
     <string name="recurrence_weekdays">по будням</string>
     <string name="recurrence_weekends">по выходным</string>
