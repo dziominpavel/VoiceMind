@@ -31,6 +31,6 @@
 ## 6. OpenSpec: валидация и архивация
 
 - [x] 6.1 `openspec validate --all` — должно проходить без ошибок.
-- [ ] 6.2 Зафиксировать изменения в git (отдельный коммит применения).
-- [ ] 6.3 `openspec archive remove-reliability-check-flow` — архивировать смену.
-- [ ] 6.4 Проверить, что `openspec/specs/reliability-onboarding/spec.md` не содержит requirements (только `## Purpose`), и архивировать capability согласно конвенции проекта (переместить в `openspec/specs/archive/` или удалить).
+- [x] 6.2 Зафиксировать изменения в git (отдельный коммит применения).
+- [x] 6.3 `openspec archive remove-reliability-check-flow` — архивировать смену. Выполнено через `openspec archive --yes --skip-specs` (archive отказался писать пустой spec, поэтому sync пропущен, capability удалена вручную в 6.4).
+- [x] 6.4 Проверить, что `openspec/specs/reliability-onboarding/spec.md` не содержит requirements (только `## Purpose`), и архивировать capability согласно конвенции проекта (переместить в `openspec/specs/archive/` или удалить). Capability `reliability-onboarding` удалена целиком (каталог `openspec/specs/reliability-onboarding/`), т.к. после REMOVED обоих requirements spec не валидируется пустым. `openspec validate --all` — 9/9 passed.
