@@ -365,6 +365,11 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    /** Загружает напоминание по id для полноэкранного UI AlarmActivity. */
+    suspend fun loadReminderForAlarm(reminderId: Long): Reminder? {
+        return repository.getById(reminderId)
+    }
+
     fun snoozeUntil(id: Long, fireAtMillis: Long) {
         safeDb(getString(R.string.error_save_failed)) {
             val reminder = repository.getById(id) ?: return@safeDb
