@@ -206,7 +206,21 @@ class ReminderScheduler(context: Context) {
 `ReminderNotifier.show(reminder, mode)`:
 
 - строит `NotificationCompat` по mode;
-- для `ALARM` — высокий приоритет + vibration pattern; `fullScreenIntent` — фаза 4.
+- для `ALARM` — высокий приоритет + vibration pattern; `fullScreenIntent` как fallback для screen-off/locked.
+
+## Полноэкранный UI при срабатывании (ALARM/VIBRATE)
+
+При срабатывании напоминания `ReminderAlarmReceiver`:
+
+1. **Синхронно в `onReceive`** (до `goAsync`) вызывает `startActivity(AlarmActivity)` — окно всплывает поверх любого приложения, включая immersive (игры/видео).
+2. **В корутине** (после `goAsync`): WakeLock, `AlarmSoundPlayer.play`, `ReminderNotifier.show` (notification с `fullScreenIntent` как fallback для screen-off и OEM-блокировок), обновление статуса/рекуррентности.
+
+`AlarmActivity` (`launchMode="singleTask"`, `showOnLockScreen`, `turnScreenOn`):
+
+- загружает `Reminder` через `VoiceMindViewModel` по `EXTRA_REMINDER_ID`;
+- если `deliveryMode` NOTIFICATION/SILENT — `finish()` без показа UI;
+- если ALARM/VIBRATE — полноэкранный UI с кнопками Готово/Отложить/Отменить;
+- `onNewIntent` обновляет `reminderId` при повторном срабатывании (звук перезапускается корутиной ресивера).
 
 ## Референс GymProgress (только код)
 

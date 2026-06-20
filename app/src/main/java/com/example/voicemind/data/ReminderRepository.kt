@@ -70,6 +70,15 @@ class ReminderRepository(context: Context) {
         WidgetUpdater.updateAll(appContext)
     }
 
+    suspend fun markFired(id: Long) = withContext(Dispatchers.IO) {
+        val reminder = dao.getById(id) ?: return@withContext
+        if (reminder.status != ReminderStatus.PENDING.name) {
+            return@withContext
+        }
+        dao.updateStatus(id, ReminderStatus.TRIGGERED.name)
+        WidgetUpdater.updateAll(appContext)
+    }
+
     suspend fun markFiredAndShow(id: Long) = withContext(Dispatchers.IO) {
         val reminder = dao.getById(id) ?: return@withContext
         if (reminder.status != ReminderStatus.PENDING.name) {
