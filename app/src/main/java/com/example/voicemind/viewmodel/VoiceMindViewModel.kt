@@ -120,20 +120,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         _requestNotificationsPermission.value = false
     }
 
-    private val _reliabilityIssues = MutableStateFlow<List<ReliabilityIssue>>(emptyList())
-    val reliabilityIssues: StateFlow<List<ReliabilityIssue>> = _reliabilityIssues.asStateFlow()
-
-    fun checkReliability() {
-        val issues = mutableListOf<ReliabilityIssue>()
-        if (!ReminderPermissions.hasPostNotifications(getApplication())) {
-            issues += ReliabilityIssue.NOTIFICATIONS_MISSING
-        }
-        if (!ReminderPermissions.canScheduleExactAlarms(getApplication())) {
-            issues += ReliabilityIssue.EXACT_ALARM_MISSING
-        }
-        _reliabilityIssues.value = issues
-    }
-
     fun handleIntent(intent: Intent?) {
         when (intent?.action) {
             WidgetActions.ACTION_START_VOICE -> {
@@ -420,30 +406,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             morning.toInstant().toEpochMilli()
         } else {
             morning.plusDays(1).toInstant().toEpochMilli()
-        }
-    }
-
-    fun createTestReminder() {
-        safeDb(getString(R.string.error_save_failed)) {
-            val mode = settings.getDefaultDeliveryMode()
-            val now = System.currentTimeMillis()
-            repository.insertAndSchedule(
-                Reminder(
-                    clientId = UUID.randomUUID().toString(),
-                    fireAt = now + 60_000L,
-                    body = getString(R.string.test_reminder_body),
-                    rawPhrase = null,
-                    status = ReminderStatus.PENDING.name,
-                    createdAt = now,
-                    alarmRequestCode = 0,
-                    deliveryMode = mode.name,
-                ),
-            )
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
