@@ -37,7 +37,7 @@ object FormatUtils {
 
     fun statusLabel(status: String): String = when (status) {
         "PENDING" -> "Ожидает"
-        "TRIGGERED" -> "Сработало"
+        "TRIGGERED" -> "Без ответа"
         "DONE" -> "Выполнено"
         "CANCELLED" -> "Отменено"
         else -> status
@@ -56,6 +56,26 @@ object FormatUtils {
         val diff = epochMillis - nowMillis
         if (diff < 0) return "просрочено"
         return formatShortDate(epochMillis, nowMillis, zone)
+    }
+
+    /** Дата для карточки Истории: без «просрочено». */
+    fun formatHistoryDate(
+        epochMillis: Long,
+        nowMillis: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val date = Instant.ofEpochMilli(epochMillis).atZone(zone).toLocalDate()
+        val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+        val daysDiff = ChronoUnit.DAYS.between(today, date)
+        return when (daysDiff) {
+            0L -> "сегодня"
+            -1L -> "вчера"
+            1L -> "завтра"
+            else -> {
+                val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("ru"))
+                date.format(formatter)
+            }
+        }
     }
 
     fun formatShortDate(

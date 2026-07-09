@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -435,6 +436,8 @@ private fun HistoryReminderCard(
         CardState.CANCELLED -> BackgroundSecondary
         else -> SurfaceElevated
     }
+    val muted = isDone || isCancelled
+    val statusAndDate = "${FormatUtils.statusLabel(reminder.status)} · ${FormatUtils.formatHistoryDate(reminder.fireAt)}"
 
     Card(
         modifier = modifier
@@ -464,17 +467,19 @@ private fun HistoryReminderCard(
 
             Spacer(modifier = Modifier.width(Spacing.md))
 
-            // Time column
-            Column(modifier = Modifier.width(72.dp)) {
+            // Time + status · date (never «просрочено»)
+            Column(modifier = Modifier.widthIn(min = 72.dp, max = 110.dp)) {
                 Text(
                     text = FormatUtils.formatTime(reminder.fireAt),
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (isDone || isCancelled) TextMuted else TextPrimaryDark,
+                    color = if (muted) TextMuted else TextPrimaryDark,
                 )
                 Text(
-                    text = FormatUtils.formatRelativeFireAt(reminder.fireAt),
+                    text = statusAndDate,
                     style = MaterialTheme.typography.labelMedium,
                     color = TextMuted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
@@ -487,7 +492,7 @@ private fun HistoryReminderCard(
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (isDone || isCancelled) TextMuted else TextPrimaryDark,
+                    color = if (muted) TextMuted else TextPrimaryDark,
                     textDecoration = if (isDone) TextDecoration.LineThrough else null,
                 )
             }

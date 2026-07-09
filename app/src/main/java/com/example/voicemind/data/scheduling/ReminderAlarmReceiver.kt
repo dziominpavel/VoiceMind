@@ -13,6 +13,7 @@ import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.SettingsRepository
 import com.example.voicemind.data.notification.AlarmSoundPlayer
 import com.example.voicemind.data.notification.ReminderNotifier
+import com.example.voicemind.data.resolvedDeliveryMode
 import com.example.voicemind.ui.screens.AlarmActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,17 +26,22 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val reminderId = intent?.getLongExtra(ReminderIntents.EXTRA_REMINDER_ID, -1L) ?: return
         if (reminderId < 0) return
 
-        // Synchronous startActivity before goAsync to avoid background-activity-start block on Android 10+.
-        // AlarmActivity decides whether to show fullscreen UI (ALARM/VIBRATE) or finish() immediately
-        // (NOTIFICATION/SILENT) based on the reminder's deliveryMode loaded via ViewModel.
-        try {
-            val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId)
+        val settingsFallback = DeliveryMode.NOTIFICATION
+        val modeFromExtras = intent.getStringExtra(ReminderIntents.EXTRA_DELIVERY_MODE)
+            ?.let { runCatching { DeliveryMode.valueOf(it) }.getOrNull() }
+            ?: settingsFallback
+
+        // Sync startActivity before goAsync (Android 10+ allowlist). Only ALARM/VIBRATE.
+        if (modeFromExtras == DeliveryMode.ALARM || modeFromExtras == DeliveryMode.VIBRATE) {
+            try {
+                val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra(AlarmActivity.EXTRA_REMINDER_ID, reminderId)
+                }
+                context.startActivity(alarmIntent)
+            } catch (e: Exception) {
+                Log.e(TAG, "startActivity for AlarmActivity failed, relying on notification fallback", e)
             }
-            context.startActivity(alarmIntent)
-        } catch (e: Exception) {
-            Log.e(TAG, "startActivity for AlarmActivity failed, relying on notification fallback", e)
         }
 
         val pendingResult = goAsync()
@@ -49,7 +55,9 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 }
 
                 val settings = SettingsRepository.getInstance(context)
-                val deliveryMode = settings.getDefaultDeliveryMode()
+                val fallback = settings.getDefaultDeliveryMode()
+                val deliveryMode = reminder.resolvedDeliveryMode(fallback)
+
                 if (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE) {
                     val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
                     wakeLock = powerManager.newWakeLock(
@@ -70,8 +78,6 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     AlarmSoundPlayer.playVibrationOnly(context)
                 }
 
-                // Show notification with the ORIGINAL reminder (before any DB update) so that
-                // both the notification and AlarmActivity display the current occurrence, not the next.
                 ReminderNotifier(context).show(reminder)
 
                 val rule = RecurrenceRule.parse(reminder.recurrenceRule)

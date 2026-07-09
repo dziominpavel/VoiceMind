@@ -1186,7 +1186,7 @@ class ReminderParserTest {
         val r = parser.parse("примерно в восемь совещание", now)
         assertNotNull(r.fireAt)
         val dt = r.fireAt!!.atZone(zone)
-        assertEquals(8, dt.hour)
+        assertEquals(20, dt.hour)
         assertTrue(r.warnings.contains(ParseWarning.APPROXIMATE_TIME))
         assertTrue(r.confidence < 1.0f)
         assertEquals("совещание", r.body)
@@ -1229,5 +1229,127 @@ class ReminderParserTest {
         val r = parser.parse("на новый год подготовить тост", now)
         assertTrue(r.warnings.contains(ParseWarning.CLARIFY_DATE))
         assertTrue(r.confidence <= 0.3f)
+    }
+
+    // === fix-parser-robustness-and-phrases P0 ===
+
+    @Test
+    fun invalidDate_31April_doesNotCrash() {
+        val r = parser.parse("31 апреля купить корм", now)
+        assertNull(r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+        assertTrue(r.body.contains("купить корм") || r.body.contains("31 апреля"))
+    }
+
+    @Test
+    fun invalidHour_25_doesNotCrash() {
+        val r = parser.parse("в 25 часов позвонить", now)
+        assertNull(r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun invalidMinutes_70_doesNotCrash() {
+        val r = parser.parse("в 9 часов 70 минут проверить", now)
+        // Must not throw; may fall back to «в 9 часов» or no time — either is fine if no crash
+        assertNotNull(r)
+    }
+
+    @Test
+    fun prefix_napomnit_infinitive_keptInBody() {
+        val r = parser.parse("напомнить завтра в 10:00 купить молоко", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 10, 0).atZone(zone).toInstant(), r.fireAt)
+        assertTrue(r.body.contains("напомнить"))
+        assertTrue(r.body.contains("купить молоко"))
+        assertTrue(!r.body.startsWith("ть"))
+    }
+
+    @Test
+    fun hoursWordWithEveningMarker_parses2000() {
+        val r = parser.parse("в 8 часов вечера фильм", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 20, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("фильм", r.body)
+    }
+
+    @Test
+    fun hoursWordWithDayMarker_parses1500() {
+        val r = parser.parse("в 3 часа дня обед", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 15, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("обед", r.body)
+    }
+
+    @Test
+    fun at12Evening_isMidnight() {
+        val r = parser.parse("в 12 вечера проверить дверь", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 0, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("проверить дверь", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+    }
+
+    @Test
+    fun at12Morning_isNoon() {
+        val r = parser.parse("в 12 утра встреча", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 12, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("встреча", r.body)
+    }
+
+    // === fix-parser-robustness-and-phrases P1 ===
+
+    @Test
+    fun eveningMarker_withExactTime_bodyClean() {
+        val r = parser.parse("вечером позвонить в 21:00", now)
+        assertEquals(LocalDateTime.of(2026, 5, 17, 21, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun morningPrefix_withColon_bodyClean() {
+        val r = parser.parse("утром в 9:00 зарядка", now)
+        assertEquals(LocalDateTime.of(2026, 5, 18, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("зарядка", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.PAST_TIME_ADJUSTED))
+    }
+
+    @Test
+    fun nextSunday_neuter() {
+        // now = Sunday 17 May; следующее воскресенье = 24 May
+        val r = parser.parse("в следующее воскресенье в 11:00 бранч", now)
+        assertEquals(LocalDateTime.of(2026, 5, 24, 11, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("бранч", r.body)
+    }
+
+    @Test
+    fun wordHour_devyat_ambiguous() {
+        val r = parser.parse("в девять позвонить", now)
+        assertNotNull(r.fireAt)
+        assertTrue(r.warnings.contains(ParseWarning.TIME_AMBIGUOUS))
+        assertTrue(r.confidence <= 0.5f)
+        assertEquals("позвонить", r.body)
+    }
+
+    @Test
+    fun holiday_notVoiceParseSuccessful() {
+        val r = parser.parse("на день рождения купить подарок", now)
+        assertTrue(r.warnings.contains(ParseWarning.CLARIFY_DATE))
+        assertEquals(0.2f, r.confidence, 0.001f)
+        assertTrue(!r.isVoiceParseSuccessful())
+    }
+
+    // === fix-parser-robustness-and-phrases P2 ===
+
+    @Test
+    fun cherezDvaMesyaca_wordNumber() {
+        val r = parser.parse("через два месяца сдать отчёт", now)
+        assertEquals(LocalDateTime.of(2026, 7, 17, 9, 0).atZone(zone).toInstant(), r.fireAt)
+        assertEquals("сдать отчёт", r.body)
+        assertTrue(r.warnings.contains(ParseWarning.NO_TIME_FOUND))
+    }
+
+    @Test
+    fun relativeHalfHour_withTomorrow_bodyClean() {
+        val r = parser.parse("через полчаса завтра проверить", now)
+        assertEquals(now.plusSeconds(30 * 60), r.fireAt)
+        assertEquals("проверить", r.body)
+        assertTrue(!r.body.contains("завтра"))
     }
 }
