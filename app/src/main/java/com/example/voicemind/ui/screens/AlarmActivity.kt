@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +36,9 @@ import com.example.voicemind.R
 import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
+import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.notification.AlarmSoundPlayer
+import com.example.voicemind.data.resolvedDeliveryMode
 import com.example.voicemind.ui.theme.ComponentSize
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.ui.theme.VoiceMindTheme
@@ -101,7 +104,7 @@ class AlarmActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        // Если активность завершается (после нажатия Готово/Отменить/Отложить),
+        // Если активность завершается (после нажатия Выполнено/Отменить/Отложить),
         // игнорируем новый intent — звук и статус обработает корутина ресивера и notification.
         if (isFinishing) return
         val newId = intent?.getLongExtra(EXTRA_REMINDER_ID, -1L) ?: return
@@ -141,7 +144,8 @@ class AlarmActivity : ComponentActivity() {
  *
  * - Пока данные грузятся и нет extras (прямой startActivity из ресивера): ничего не показываем.
  * - Пока данные грузятся, но есть extras (fullScreenIntent из notification): показываем placeholder.
- * - После загрузки: если deliveryMode ALARM/VIBRATE → полноэкранный UI; если NOTIFICATION/SILENT → finish().
+ * - После загрузки: finish() если статус не PENDING/TRIGGERED или mode NOTIFICATION/SILENT;
+ *   иначе полноэкранный UI для ALARM/VIBRATE.
  */
 @Composable
 private fun AlarmActivityContent(
@@ -155,6 +159,7 @@ private fun AlarmActivityContent(
     onFinish: () -> Unit,
 ) {
     var reminder by remember { mutableStateOf<Reminder?>(null) }
+    val defaultDeliveryMode by viewModel.defaultDeliveryMode.collectAsState()
 
     LaunchedEffect(reminderId) {
         if (reminderId >= 0) {
@@ -178,12 +183,20 @@ private fun AlarmActivityContent(
         return
     }
 
-    // Проверяем deliveryMode напоминания.
-    val mode = runCatching { DeliveryMode.valueOf(loaded.deliveryMode) }
-        .getOrNull() ?: DeliveryMode.NOTIFICATION
+    // Stale PI / уже закрытое напоминание — не держим fullscreen.
+    val isActive =
+        loaded.status == ReminderStatus.PENDING.name ||
+            loaded.status == ReminderStatus.TRIGGERED.name
+    if (!isActive) {
+        LaunchedEffect(loaded.id, loaded.status) {
+            onFinish()
+        }
+        return
+    }
+
+    val mode = loaded.resolvedDeliveryMode(defaultDeliveryMode)
     if (mode == DeliveryMode.NOTIFICATION || mode == DeliveryMode.SILENT) {
-        // Для NOTIFICATION/SILENT полноэкранный UI не показываем — полагаемся на notification.
-        LaunchedEffect(Unit) {
+        LaunchedEffect(loaded.id, mode) {
             onFinish()
         }
         return

@@ -286,14 +286,15 @@ fun ReminderDetailScreen(
 
 @Composable
 private fun StatusBadge(status: String) {
-    val info = when (status) {
-        ReminderStatus.PENDING.name -> Triple(TimeSafe.copy(alpha = 0.15f), TimeSafe, "Ожидает")
-        ReminderStatus.TRIGGERED.name -> Triple(TimeWarning.copy(alpha = 0.15f), TimeWarning, "Сработало")
-        ReminderStatus.DONE.name -> Triple(Teal.copy(alpha = 0.15f), Teal, "Выполнено")
-        ReminderStatus.CANCELLED.name -> Triple(TextMuted.copy(alpha = 0.15f), TextMuted, "Отменено")
-        else -> Triple(SurfaceElevated, TextPrimaryDark, status)
+    val colors = when (status) {
+        ReminderStatus.PENDING.name -> TimeSafe.copy(alpha = 0.15f) to TimeSafe
+        ReminderStatus.TRIGGERED.name -> TimeWarning.copy(alpha = 0.15f) to TimeWarning
+        ReminderStatus.DONE.name -> Teal.copy(alpha = 0.15f) to Teal
+        ReminderStatus.CANCELLED.name -> TextMuted.copy(alpha = 0.15f) to TextMuted
+        else -> SurfaceElevated to TextPrimaryDark
     }
-    val (bgColor, textColor, label) = info
+    val (bgColor, textColor) = colors
+    val label = FormatUtils.statusLabel(status)
 
     Box(
         modifier = Modifier

@@ -3,10 +3,12 @@ package com.example.voicemind.data.scheduling
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.example.voicemind.data.DeliveryMode
 
 object ReminderIntents {
 
     const val EXTRA_REMINDER_ID = "reminder_id"
+    const val EXTRA_DELIVERY_MODE = "delivery_mode"
 
     const val ACTION_ALARM = "com.example.voicemind.ACTION_REMINDER_ALARM"
     const val ACTION_DONE = "com.example.voicemind.ACTION_REMINDER_DONE"
@@ -14,10 +16,15 @@ object ReminderIntents {
     const val ACTION_CANCEL = "com.example.voicemind.ACTION_REMINDER_CANCEL"
     const val ACTION_DISMISS = "com.example.voicemind.ACTION_REMINDER_DISMISS"
 
-    fun alarmIntent(context: Context, reminderId: Long): PendingIntent {
+    fun alarmIntent(
+        context: Context,
+        reminderId: Long,
+        deliveryMode: String = DeliveryMode.NOTIFICATION.name,
+    ): PendingIntent {
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
             action = ACTION_ALARM
             putExtra(EXTRA_REMINDER_ID, reminderId)
+            putExtra(EXTRA_DELIVERY_MODE, deliveryMode)
         }
         return PendingIntent.getBroadcast(
             context,

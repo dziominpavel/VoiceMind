@@ -7,7 +7,6 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /**
@@ -33,10 +32,11 @@ class ReminderParser(
 
         // Early-return for pure relative time (через N минут/часов/полчаса/полтора)
         if (candidates.relativeInstant != null) {
+            val relativeSpans = candidates.relativeSpans + candidates.dateCandidates.map { it.span }
             return finish(
                 rawPhrase = rawPhrase,
                 text = textWithoutRecurrence,
-                spans = candidates.relativeSpans,
+                spans = relativeSpans,
                 fireAt = candidates.relativeInstant,
                 warnings = warnings,
                 confidence = 0.85f,
@@ -60,6 +60,11 @@ class ReminderParser(
                     it.span.last >= bestTime.span.last
             }?.let { spans += it.span }
         }
+
+        // Проигравшие маркеры суток всё равно убираем из body
+        candidates.timeCandidates
+            .filter { it.type == TimeType.PART_OF_DAY || it.type == TimeType.PART_PREFIX }
+            .forEach { spans += it.span }
 
         var date = bestDate?.date ?: zonedNow.toLocalDate()
         var time = bestTime?.time
@@ -93,8 +98,13 @@ class ReminderParser(
             warnings += ParseWarning.APPROXIMATE_TIME
         }
 
-        // TIME_AMBIGUOUS warning for short hour forms
-        if (bestTime != null && (bestTime.type == TimeType.HOURS_WORD || bestTime.type == TimeType.HOURS_SHORT)) {
+        // TIME_AMBIGUOUS warning for short hour forms (digit or word)
+        if (bestTime != null && (
+                bestTime.type == TimeType.HOURS_WORD ||
+                    bestTime.type == TimeType.HOURS_SHORT ||
+                    (bestTime.type == TimeType.WORD_HOUR && bestTime.score >= 60)
+                )
+        ) {
             val hour = bestTime.time.hour
             if (hour in 1..11 && !PART_OF_DAY.containsMatchIn(normalized.lowerText)) {
                 warnings += ParseWarning.TIME_AMBIGUOUS
@@ -114,19 +124,19 @@ class ReminderParser(
             warnings += ParseWarning.NO_TIME_FOUND
         }
 
-        // Past time adjustment
+        // Past time adjustment (calendar days in local zone — DST-safe)
         if (fireAt != null && fireAt.isBefore(now)) {
             when {
                 hadTodayWord -> {
-                    fireAt = fireAt.plus(1, ChronoUnit.DAYS)
+                    fireAt = fireAt.atZone(zone).plusDays(1).toInstant()
                     warnings += ParseWarning.PAST_TIME_ADJUSTED
                 }
                 hadWeekday -> {
-                    fireAt = fireAt.plus(7, ChronoUnit.DAYS)
+                    fireAt = fireAt.atZone(zone).plusDays(7).toInstant()
                     warnings += ParseWarning.PAST_TIME_ADJUSTED
                 }
                 hadExplicitTime && !hadExplicitDate -> {
-                    fireAt = fireAt.plus(1, ChronoUnit.DAYS)
+                    fireAt = fireAt.atZone(zone).plusDays(1).toInstant()
                     warnings += ParseWarning.PAST_TIME_ADJUSTED
                 }
             }
@@ -265,6 +275,15 @@ class ReminderParser(
                     unitWord.startsWith("ч") -> {
                         relativeSpans += m.range
                         relativeInstant = zonedNow.plusHours(amount.toLong()).toInstant()
+                    }
+                    unitWord.startsWith("месяц") -> {
+                        dateCandidates += DateCandidate(
+                            date = zonedNow.toLocalDate().plusMonths(amount.toLong()),
+                            span = m.range,
+                            type = DateType.RELATIVE_DAYS,
+                            score = 45,
+                            relativeOnly = true,
+                        )
                     }
                     else -> {
                         dateCandidates += DateCandidate(
@@ -421,50 +440,60 @@ class ReminderParser(
             val month = monthFromName(monthName)
             if (month < 1) return@forEach
             var y = m.groupValues[3].toIntOrNull() ?: zonedNow.year
-            var candidate = LocalDate.of(y, month, d)
+            var candidate = try { LocalDate.of(y, month, d) } catch (_: Exception) { null }
             var missingYear = false
-            if (m.groupValues[3].isEmpty() && candidate.isBefore(zonedNow.toLocalDate())) {
-                candidate = candidate.plusYears(1)
-                missingYear = true
+            if (candidate != null) {
+                if (m.groupValues[3].isEmpty() && candidate.isBefore(zonedNow.toLocalDate())) {
+                    candidate = candidate.plusYears(1)
+                    missingYear = true
+                }
+                dateCandidates += DateCandidate(
+                    date = candidate,
+                    span = m.range,
+                    type = DateType.DAY_MONTH,
+                    score = 90,
+                    missingYear = missingYear,
+                )
             }
-            dateCandidates += DateCandidate(
-                date = candidate,
-                span = m.range,
-                type = DateType.DAY_MONTH,
-                score = 90,
-                missingYear = missingYear,
-            )
         }
 
         DATE_ORDINAL.findAll(lowerText).forEach { m ->
             val day = ordinalDayFromGroup(m.groupValues[1])
             if (day in 1..31) {
-                var candidate = LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
-                if (candidate.isBefore(zonedNow.toLocalDate())) {
-                    candidate = candidate.plusMonths(1)
+                var candidate = try {
+                    LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
+                } catch (_: Exception) { null }
+                if (candidate != null) {
+                    if (candidate.isBefore(zonedNow.toLocalDate())) {
+                        candidate = candidate.plusMonths(1)
+                    }
+                    dateCandidates += DateCandidate(
+                        date = candidate,
+                        span = m.range,
+                        type = DateType.ORDINAL_DAY,
+                        score = 85,
+                    )
                 }
-                dateCandidates += DateCandidate(
-                    date = candidate,
-                    span = m.range,
-                    type = DateType.ORDINAL_DAY,
-                    score = 85,
-                )
             }
         }
 
         DATE_ORDINAL_DIGIT.findAll(lowerText).forEach { m ->
             val day = m.groupValues[1].toInt()
             if (day in 1..31) {
-                var candidate = LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
-                if (candidate.isBefore(zonedNow.toLocalDate())) {
-                    candidate = candidate.plusMonths(1)
+                var candidate = try {
+                    LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
+                } catch (_: Exception) { null }
+                if (candidate != null) {
+                    if (candidate.isBefore(zonedNow.toLocalDate())) {
+                        candidate = candidate.plusMonths(1)
+                    }
+                    dateCandidates += DateCandidate(
+                        date = candidate,
+                        span = m.range,
+                        type = DateType.ORDINAL_DAY,
+                        score = 85,
+                    )
                 }
-                dateCandidates += DateCandidate(
-                    date = candidate,
-                    span = m.range,
-                    type = DateType.ORDINAL_DAY,
-                    score = 85,
-                )
             }
         }
 
@@ -492,7 +521,11 @@ class ReminderParser(
             val h = when (part) {
                 "утра", "утром" -> hour
                 "дня", "днём", "днем" -> if (hour >= 12) hour else hour + 12
-                "вечера", "вечером" -> if (hour >= 12) hour else hour + 12
+                "вечера", "вечером" -> when {
+                    hour == 12 -> 0
+                    hour >= 12 -> hour
+                    else -> hour + 12
+                }
                 "ночи", "ночью" -> if (hour == 12) 0 else hour
                 else -> hour
             }
@@ -500,18 +533,22 @@ class ReminderParser(
                 "вечера", "вечером", "ночи", "ночью" -> 100
                 else -> 80
             }
-            timeCandidates += TimeCandidate(
-                time = LocalTime.of(h.coerceIn(0, 23), min),
-                span = m.range,
-                type = TimeType.HOURS_PART,
-                score = score,
-            )
+            if (h in 0..23 && min in 0..59) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of(h, min),
+                    span = m.range,
+                    type = TimeType.HOURS_PART,
+                    score = score,
+                )
+            }
         }
 
         TIME_MIDNIGHT_NOON.findAll(lowerText).forEach { m ->
             val token = m.groupValues[1]
             val t = when {
-                token.startsWith("полночь") || token.contains("ночи") -> LocalTime.of(0, 0)
+                token.startsWith("полночь") ||
+                    token.contains("ночи") ||
+                    token.contains("вечера") -> LocalTime.of(0, 0)
                 else -> LocalTime.of(12, 0)
             }
             timeCandidates += TimeCandidate(
@@ -523,22 +560,28 @@ class ReminderParser(
         }
 
         TIME_HOURS_MIN.findAll(lowerText).forEach { m ->
-            timeCandidates += TimeCandidate(
-                time = LocalTime.of(m.groupValues[1].toInt(), m.groupValues[2].toInt()),
-                span = m.range,
-                type = TimeType.HOURS_MINUTES,
-                score = 90,
-            )
+            val h = m.groupValues[1].toInt()
+            val min = m.groupValues[2].toInt()
+            if (h in 0..23 && min in 0..59) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of(h, min),
+                    span = m.range,
+                    type = TimeType.HOURS_MINUTES,
+                    score = 90,
+                )
+            }
         }
 
         TIME_HOURS.findAll(lowerText).forEach { m ->
             val h = m.groupValues[1].toInt()
-            timeCandidates += TimeCandidate(
-                time = LocalTime.of(h, 0),
-                span = m.range,
-                type = TimeType.HOURS_WORD,
-                score = 60,
-            )
+            if (h in 0..23) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of(h, 0),
+                    span = m.range,
+                    type = TimeType.HOURS_WORD,
+                    score = 60,
+                )
+            }
         }
 
         TIME_HOURS_SHORT.findAll(lowerText).forEach { m ->
@@ -629,6 +672,7 @@ class ReminderParser(
         TIME_PART_PREFIX.findAll(lowerText).forEach { m ->
             val part = m.groupValues[1]
             val hour = m.groupValues[2].toInt()
+            val min = m.groupValues[3].toIntOrNull() ?: 0
             val h = when (part.lowercase()) {
                 "утром" -> hour
                 "днём", "днем" -> if (hour == 12) 12 else hour + 12
@@ -636,12 +680,14 @@ class ReminderParser(
                 "ночью" -> if (hour == 12) 0 else hour
                 else -> hour
             }
-            timeCandidates += TimeCandidate(
-                time = LocalTime.of(h.coerceIn(0, 23), 0),
-                span = m.range,
-                type = TimeType.PART_PREFIX,
-                score = 85,
-            )
+            if (h in 0..23 && min in 0..59) {
+                timeCandidates += TimeCandidate(
+                    time = LocalTime.of(h, min),
+                    span = m.range,
+                    type = TimeType.PART_PREFIX,
+                    score = 95,
+                )
+            }
         }
 
         PART_OF_DAY.findAll(lowerText).forEach { m ->
@@ -657,9 +703,11 @@ class ReminderParser(
             val rawH = wordNumberToInt(m.groupValues[1])
             if (rawH in 0..23) {
                 val prefix = lowerText.substring(m.range).lowercase()
-                val isApproximate = prefix.startsWith("к ") || prefix.startsWith("около ") || prefix.startsWith("примерно ")
-                val isKOrOkoPrefix = prefix.startsWith("к ") || prefix.startsWith("около ")
-                val h = if (isKOrOkoPrefix && rawH in 1..11) rawH + 12 else rawH
+                val isApproximate = prefix.startsWith("к ") ||
+                    prefix.startsWith("около ") ||
+                    prefix.startsWith("примерно ")
+                val applyPmHeuristic = isApproximate && rawH in 1..11
+                val h = if (applyPmHeuristic) rawH + 12 else rawH
                 timeCandidates += TimeCandidate(
                     time = LocalTime.of(h.coerceIn(0, 23), 0),
                     span = m.range,
@@ -687,16 +735,20 @@ class ReminderParser(
             val word = m.groupValues[1]
             val day = ORDINAL_DAY_MAP[word] ?: ORDINAL_NEUTER_MAP[word] ?: -1
             if (day in 1..31) {
-                var candidate = LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
-                if (candidate.isBefore(zonedNow.toLocalDate())) {
-                    candidate = candidate.plusMonths(1)
+                var candidate = try {
+                    LocalDate.of(zonedNow.year, zonedNow.monthValue, day)
+                } catch (_: Exception) { null }
+                if (candidate != null) {
+                    if (candidate.isBefore(zonedNow.toLocalDate())) {
+                        candidate = candidate.plusMonths(1)
+                    }
+                    dateCandidates += DateCandidate(
+                        date = candidate,
+                        span = m.range,
+                        type = DateType.ORDINAL_WORD_DAY,
+                        score = 85,
+                    )
                 }
-                dateCandidates += DateCandidate(
-                    date = candidate,
-                    span = m.range,
-                    type = DateType.ORDINAL_WORD_DAY,
-                    score = 85,
-                )
             }
         }
 
@@ -767,8 +819,11 @@ class ReminderParser(
             changed = false
             PREFIXES.forEach { prefix ->
                 if (s.startsWith(prefix)) {
-                    s = s.removePrefix(prefix).trimStart()
-                    changed = true
+                    val after = s.substring(prefix.length)
+                    if (after.isEmpty() || after.first().isWhitespace()) {
+                        s = after.trimStart()
+                        changed = true
+                    }
                 }
             }
         }
@@ -801,8 +856,8 @@ class ReminderParser(
         warnings: List<ParseWarning>,
         relativeOnly: Boolean,
     ): Float {
-        if (warnings.contains(ParseWarning.NO_TIME_FOUND)) return 0f
         if (warnings.contains(ParseWarning.CLARIFY_DATE)) return 0.2f
+        if (warnings.contains(ParseWarning.NO_TIME_FOUND)) return 0f
         if (warnings.contains(ParseWarning.TIME_RANGE)) return 0.70f
         if (warnings.contains(ParseWarning.APPROXIMATE_TIME)) {
             if (usedPartOfDay) return 0.80f
@@ -930,12 +985,14 @@ class ReminderParser(
             """${WB}[вво]+\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|воскресенья)${WE}""",
         )
         private val NEXT_WEEKDAY = Regex(
-            """${WB}в\s+следующ(ий|ую)\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|воскресенья)${WE}""",
+            """${WB}в\s+следующ(ий|ую|ее)\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|воскресенья)${WE}""",
         )
         private val WEEKEND = Regex("""${WB}на\s+выходных${WE}""")
         // Только с «в », чтобы не спутать 01.06.2026 с временем 6:20
         private val TIME_COLON = Regex("""${WB}(?:в\s+)?(\d{1,2})[:.](\d{2})""")
-        private val TIME_HOURS_PART = Regex("""${WB}в\s+(\d{1,2})(?:[:.](\d{2}))?\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""")
+        private val TIME_HOURS_PART = Regex(
+            """${WB}в\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s+час(?:а|ов)?)?\s+(утра|утром|дня|днём|днем|вечера|вечером|ночи|ночью)${WE}""",
+        )
         private val TIME_MIDNIGHT_NOON = Regex("""${WB}в\s+(полночь|полдень|полдня|12\s+ночи|12\s+дня|12\s+утра|12\s+вечера)${WE}""")
         private val TIME_HOURS = Regex("""${WB}в\s+(\d{1,2})\s+час(?:а|ов)?${WE}""")
         private val TIME_HOURS_MIN = Regex(
@@ -947,7 +1004,9 @@ class ReminderParser(
         private val TIME_QUARTER_TO = Regex("""${WB}без\s+(четверти|пятнадцати|15)\s+(?:часа\s+)?(двенадцать|одиннадцать|десять|девять|восемь|семь|шесть|пять|четыре|три|два|один)${WE}""")
         private val TIME_QUARTER_PAST = Regex("""${WB}(?:в\s+)?четверть\s+(двенадцатого|одиннадцатого|десятого|девятого|восьмого|седьмого|шестого|пятого|четвёртого|четвертого|третьего|второго|первого)${WE}""")
         private val TIME_HALF_WITH = Regex("""${WB}(?:в\s+)?(двенадцать|одиннадцать|десять|девять|восемь|семь|шесть|пять|четыре|три|два|один)\s+с\s+половиной${WE}""")
-        private val TIME_PART_PREFIX = Regex("""${WB}(утром|днём|днем|вечером|ночью)\s+в\s+(\d{1,2})${WE}""")
+        private val TIME_PART_PREFIX = Regex(
+            """${WB}(утром|днём|днем|вечером|ночью)\s+в\s+(\d{1,2})(?:[:.](\d{2}))?${WE}""",
+        )
         private val PART_OF_DAY = Regex("""${WB}(утром|в обед|днём|днем|вечером|ночью)${WE}""")
         private val DATE_DMY = Regex("""${WB}(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?${WE}""")
         private val DATE_DAY_MONTH = Regex(
@@ -1112,7 +1171,7 @@ class ReminderParser(
         )
 
         private val RELATIVE_DELTA_WORDS = Regex(
-            """через\s+($WORD_NUMBER_ALTERNATIVES)\s+(минуты|минуту|минут|мин|часа|часов|час|ч|дня|дней|день)""",
+            """через\s+($WORD_NUMBER_ALTERNATIVES)\s+(минуты|минуту|минут|мин|часа|часов|час|ч|месяца|месяцев|месяц|дня|дней|день)""",
         )
 
         private val DATE_ORDINAL_WORDS = Regex(

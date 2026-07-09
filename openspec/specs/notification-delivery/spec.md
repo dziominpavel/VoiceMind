@@ -64,21 +64,22 @@
 - **THEN** в шторке появляется иконка и текст
 - **AND** нет звука, нет вибрации
 
-### Requirement: Действие "Готово" на уведомлении
-Пользователь MUST иметь возможность отметить напоминание выполненным из уведомления.
+### Requirement: Действие "Выполнено" на уведомлении
+Пользователь MUST иметь возможность отметить напоминание выполненным из уведомления. Кнопка действия MUST называться «Выполнено» (не «Готово»).
 
 #### Scenario: Отметить выполненным
-- **WHEN** пользователь нажимает "Готово" на уведомлении
-- **THEN** статус напоминания меняется на DISMISSED
+- **WHEN** пользователь нажимает «Выполнено» на уведомлении
+- **THEN** статус напоминания меняется на DONE
 - **AND** alarm отменяется
+- **AND** уведомление снимается
 
 ### Requirement: Действие "Отложить" на уведомлении
 Пользователь MUST иметь возможность отложить напоминание. Новое время срабатывания MUST вычисляться строго от текущего момента (`now + интервал`), а не от прежнего `fireAt` — даже если напоминание уже просрочено. Быстрое действие в самом уведомлении откладывает на 10 минут; расширенные пресеты доступны на экране деталей и на полноэкранном ALARM-UI.
 
 #### Scenario: Отложить на 10 минут из уведомления
-- **WHEN** пользователь нажимает "Отложить 10 мин" на уведомлении
+- **WHEN** пользователь нажимает «+10 мин» на уведомлении
 - **THEN** fireAt смещается на now + 10 минут
-- **AND** статус меняется на SNOOZED → SCHEDULED
+- **AND** статус становится PENDING
 - **AND** alarm перепланируется через ReminderScheduler
 
 #### Scenario: Отложить просроченное напоминание
@@ -87,12 +88,23 @@
 - **AND** alarm реально планируется (не пропускается как просроченный)
 
 ### Requirement: Действие "Отменить" на уведомлении
-Пользователь MUST иметь возможность отменить напоминание из уведомления.
+Пользователь MUST иметь возможность отменить напоминание из уведомления. «Отменить» MUST означать отказ от напоминания (CANCELLED), а не выполнение (DONE).
 
 #### Scenario: Отменить напоминание
-- **WHEN** пользователь нажимает "Отменить" на уведомлении
+- **WHEN** пользователь нажимает «Отменить» на уведомлении
 - **THEN** статус меняется на CANCELLED
 - **AND** alarm отменяется
+- **AND** уведомление снимается
+
+### Requirement: Семантика действий на уведомлении
+Три действия на уведомлении MUST иметь различную семантику и не дублировать друг друга по смыслу для пользователя.
+
+#### Scenario: Различие Выполнено и Отменить
+- **WHEN** уведомление показано в шторке
+- **THEN** доступны действия «Выполнено», «+10 мин», «Отменить»
+- **AND** «Выполнено» переводит в DONE (задача учтена / сделана)
+- **AND** «Отменить» переводит в CANCELLED (напоминание больше не нужно)
+- **AND** «+10 мин» возвращает в PENDING с новым fireAt
 
 ### Requirement: Permission POST_NOTIFICATIONS
 На API 33+ приложение MUST запрашивать POST_NOTIFICATIONS до первого показа уведомления.
@@ -111,25 +123,30 @@
 - **AND** показывается предупреждение о неточности
 
 ### Requirement: BootReceiver reschedule
-При получении BOOT_COMPLETED или MY_PACKAGE_REPLACED система MUST перепланировать все SCHEDULED напоминания.
+При получении BOOT_COMPLETED или MY_PACKAGE_REPLACED система MUST перепланировать все PENDING напоминания. `BootReceiver` MUST быть объявлен с `android:exported="true"`, иначе система не доставит implicit boot broadcast.
 
 #### Scenario: Перезагрузка устройства
 - **WHEN** устройство перезагрузилось
-- **THEN** BootReceiver вызывает ReminderScheduler.rescheduleAll()
-- **AND** все SCHEDULED напоминания вновь планируются в AlarmManager
+- **THEN** BootReceiver получает `BOOT_COMPLETED`
+- **AND** вызывает `ReminderRepository.rescheduleAll()` (и при необходимости `fireOverdue`)
+- **AND** все PENDING напоминания вновь планируются в AlarmManager
+
+#### Scenario: BootReceiver экспортирован
+- **WHEN** приложение установлено на API 26+
+- **THEN** в AndroidManifest у `BootReceiver` стоит `android:exported="true"`
+- **AND** intent-filter содержит `BOOT_COMPLETED` и `MY_PACKAGE_REPLACED`
 
 ### Requirement: Глобальный режим доставки из настроек
-Система MUST определять режим доставки для любого напоминания исключительно из `settings.defaultDeliveryMode` при срабатывании, а не из поля `reminder.deliveryMode` в Room.
+Система MUST использовать `reminder.deliveryMode` как источник истины при срабатывании alarm и показе уведомления. `settings.defaultDeliveryMode` MUST применяться только как fallback, если поле reminder пустое или невалидное. Смена дефолта в настройках MUST NOT менять поведение уже созданных напоминаний, пока их `deliveryMode` не синхронизирован явно (см. sync requirement).
 
-#### Scenario: Срабатывание с глобальным режимом
-- **WHEN** напоминание срабатывает по alarm
-- **THEN** `ReminderNotifier` и `ReminderAlarmReceiver` читают `settings.defaultDeliveryMode`
-- **AND** поведение доставки соответствует глобальному режиму, независимо от значения `reminder.deliveryMode` в БД
+#### Scenario: Срабатывание с per-reminder режимом
+- **WHEN** напоминание с `deliveryMode=NOTIFICATION` срабатывает, а в настройках default = ALARM
+- **THEN** `ReminderNotifier` и `ReminderAlarmReceiver` используют NOTIFICATION
+- **AND** полноэкранный ALARM UI / alarm-звук не запускаются
 
-#### Scenario: Смена режима в настройках до срабатывания
-- **WHEN** пользователь меняет `defaultDeliveryMode` в настройках
-- **AND** существуют напоминания с другим `deliveryMode` в БД
-- **THEN** при следующем срабатывании любого напоминания применяется новый глобальный режим
+#### Scenario: Fallback на settings
+- **WHEN** `reminder.deliveryMode` невалиден
+- **THEN** используется `settings.defaultDeliveryMode`
 
 ### Requirement: Синхронизация deliveryMode в БД
 Система MUST синхронизировать поле `reminder.deliveryMode` в Room с текущим `settings.defaultDeliveryMode` для всех записей без фильтра по статусу.
@@ -143,6 +160,31 @@
 - **WHEN** пользователь выбирает другой режим доставки в настройках
 - **THEN** все записи в таблице `reminders` (любой статус: PENDING, TRIGGERED, DONE, CANCELLED) получают обновлённый `deliveryMode`
 - **AND** sync выполняется до отображения Snackbar/закрытия экрана настроек
+
+### Requirement: Snooze не воскрешает отменённые
+`snoozeReminder` MUST быть no-op, если статус напоминания не PENDING и не TRIGGERED (в частности CANCELLED/DONE).
+
+#### Scenario: Stale snooze на отменённом
+- **WHEN** пользователь нажимает «Отложить» на устаревшем уведомлении CANCELLED/DONE напоминания
+- **THEN** статус и alarm не меняются
+
+### Requirement: ReminderScheduler идемпотентен
+`ReminderScheduler.schedule` MUST отменять предыдущий alarm для того же id перед постановкой нового. `cancel` MUST вызывать только `AlarmManager.cancel(pendingIntent)` и MUST NOT вызывать `PendingIntent.cancel()`, чтобы не уничтожать PI для параллельного schedule.
+
+#### Scenario: Повторный schedule
+- **WHEN** для одного reminder вызывается `schedule` дважды с разным `fireAt`
+- **THEN** в системе остаётся один alarm на новое время
+
+#### Scenario: Cancel не убивает PI навсегда
+- **WHEN** вызывается `cancel(id)`, затем сразу `schedule` для того же id
+- **THEN** новый alarm успешно ставится
+
+### Requirement: Порядок updateAndSchedule
+При изменении напоминания система MUST выполнять `scheduler.cancel` до записи в БД, затем `schedule` если статус PENDING и `fireAt` в будущем.
+
+#### Scenario: Смена fireAt перед старым alarm
+- **WHEN** пользователь меняет время напоминания незадолго до старого `fireAt`
+- **THEN** старый alarm отменяется до обновления записи так, чтобы не сработать на устаревшие данные
 
 ### Requirement: Громкость будильника задаётся в процентах
 Громкость будильника MUST задаваться и храниться в процентах в диапазоне `0..100` — в том же масштабе, который использует `AlarmSoundPlayer` при вычислении целевой громкости потока `STREAM_ALARM`. Слайдер громкости в настройках MUST работать в этом же диапазоне `0..100`, чтобы максимум слайдера соответствовал максимальной громкости будильника.

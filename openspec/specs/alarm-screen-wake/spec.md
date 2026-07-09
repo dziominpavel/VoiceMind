@@ -27,18 +27,18 @@
 - **AND** UI использует тёмную тему CLEAR BELL
 
 ### Requirement: Действия на полноэкранном UI
-На полноэкранном UI ALARM MUST быть доступны три действия: «Готово», «Отложить 10 мин», «Отменить».
+На полноэкранном UI ALARM MUST быть доступны три действия: «Выполнено», «Отложить» (пресеты / быстрые минуты), «Отменить».
 
-#### Scenario: Нажатие «Готово»
-- **WHEN** пользователь нажимает «Готово» на полноэкранном UI
-- **THEN** статус напоминания меняется на DISMISSED
+#### Scenario: Нажатие «Выполнено»
+- **WHEN** пользователь нажимает «Выполнено» на полноэкранном UI
+- **THEN** статус напоминания меняется на DONE
 - **AND** alarm звук останавливается
 - **AND** полноэкранный UI закрывается
 
 #### Scenario: Нажатие «Отложить»
-- **WHEN** пользователь нажимает «Отложить 10 мин» на полноэкранном UI
-- **THEN** напоминание перепланируется на now + 10 минут
-- **AND** статус меняется на SNOOZED, затем SCHEDULED
+- **WHEN** пользователь нажимает отложить на полноэкранном UI
+- **THEN** напоминание перепланируется на now + выбранный интервал
+- **AND** статус становится PENDING
 - **AND** alarm звук останавливается
 - **AND** полноэкранный UI закрывается
 
@@ -72,7 +72,7 @@
 - **AND** `AlarmActivity` объявлена с `android:showOnLockScreen="true"` и соответствующими flags
 
 ### Requirement: Прямой запуск AlarmActivity при включённом экране
-При срабатывании напоминания с `deliveryMode` ALARM или VIBRATE система MUST запускать `AlarmActivity` напрямую через `startActivity` из `ReminderAlarmReceiver.onReceive` синхронно (до `goAsync`), чтобы полноэкранный UI появлялся поверх любого приложения, включая immersive (игры/видео), а не только через `fullScreenIntent` notification.
+При срабатывании напоминания с `deliveryMode` ALARM или VIBRATE система MUST запускать `AlarmActivity` напрямую через `startActivity` из `ReminderAlarmReceiver.onReceive` синхронно (до `goAsync`). Режим MUST браться из extras PendingIntent (`EXTRA_DELIVERY_MODE`), выставленных при `schedule`. Для NOTIFICATION и SILENT `startActivity` MUST NOT вызываться. После загрузки reminder `AlarmActivity` MUST вызывать `finish()`, если статус не PENDING/TRIGGERED или resolved mode — NOTIFICATION/SILENT.
 
 #### Scenario: Экран включён, разблокирован, обычное приложение
 - **WHEN** напоминание ALARM срабатывает при включённом и разблокированном экране, пока пользователь в обычном приложении
@@ -94,6 +94,10 @@
 - **WHEN** напоминание NOTIFICATION или SILENT срабатывает при включённом экране
 - **THEN** `AlarmActivity` НЕ запускается напрямую
 - **AND** система показывает heads-up (NOTIFICATION) или тихое уведомление (SILENT) как раньше
+
+#### Scenario: Stale alarm для CANCELLED
+- **WHEN** `AlarmActivity` загружает reminder со статусом CANCELLED или DONE
+- **THEN** активность вызывает `finish()` без полноэкранного UI
 
 ### Requirement: Обработка onNewIntent в AlarmActivity
 `AlarmActivity` (с `launchMode="singleTask"`) MUST обрабатывать `onNewIntent`: при повторном срабатывании другого напоминания обновлять отображаемые `body` и `fireAt` и перезапускать звук/вибрацию с новыми параметрами.

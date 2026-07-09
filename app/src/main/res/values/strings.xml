@@ -41,7 +41,7 @@
     <string name="detail_snooze_tomorrow_morning">Завтра утром (09:00)</string>
     <string name="detail_duplicate">Повторить</string>
     <string name="detail_cancel">Отменить</string>
-    <string name="detail_done">Готово</string>
+    <string name="detail_done">Выполнено</string>
 
     <string name="manual_create_title">Новое напоминание</string>
     <string name="manual_edit_title">Редактировать</string>
@@ -101,11 +101,11 @@
     <string name="list_cancel">Отменить</string>
 
     <string name="notification_title">Напоминание</string>
-    <string name="notification_action_done">Готово</string>
+    <string name="notification_action_done">Выполнено</string>
     <string name="notification_action_snooze">+10 мин</string>
     <string name="notification_action_cancel">Отменить</string>
 
-    <string name="alarm_screen_done">Готово</string>
+    <string name="alarm_screen_done">Выполнено</string>
     <string name="alarm_screen_snooze_label">Отложить</string>
     <string name="alarm_screen_snooze_5">5 мин</string>
     <string name="alarm_screen_snooze_10">10 мин</string>

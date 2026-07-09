@@ -11,6 +11,7 @@ import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.SettingsRepository
+import com.example.voicemind.data.resolvedDeliveryMode
 import com.example.voicemind.data.scheduling.ReminderIntents
 import com.example.voicemind.ui.screens.AlarmActivity
 import kotlinx.coroutines.flow.first
@@ -24,7 +25,8 @@ class ReminderNotifier(private val context: Context) {
         NotificationChannels.createAll(context)
 
         val settings = SettingsRepository.getInstance(context)
-        val deliveryMode = settings.getDefaultDeliveryMode()
+        val fallback = settings.getDefaultDeliveryMode()
+        val deliveryMode = reminder.resolvedDeliveryMode(fallback)
         val channelId = NotificationChannels.channelId(deliveryMode)
         val useVibration = settings.useVibration.first()
 

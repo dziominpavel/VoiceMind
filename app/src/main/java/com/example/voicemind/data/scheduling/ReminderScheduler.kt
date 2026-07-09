@@ -20,7 +20,13 @@ class ReminderScheduler(private val context: Context) {
             Log.w(TAG, "skip past reminder id=${reminder.id} fireAt=$triggerAt")
             return
         }
-        val pendingIntent = ReminderIntents.alarmIntent(context, reminder.id)
+        val pendingIntent = ReminderIntents.alarmIntent(
+            context,
+            reminder.id,
+            reminder.deliveryMode,
+        )
+        // Idempotent: drop any previous alarm for this id before setting a new one.
+        alarmManager.cancel(pendingIntent)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setAndAllowWhileIdle(
@@ -36,20 +42,23 @@ class ReminderScheduler(private val context: Context) {
                 )
             }
             Log.d(TAG, "scheduled id=${reminder.id} at=$triggerAt")
-        } catch (e: SecurityException) {
-            Log.e(TAG, "schedule failed id=${reminder.id}", e)
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAt,
-                pendingIntent,
-            )
+        } catch (e: Exception) {
+            Log.e(TAG, "exact schedule failed id=${reminder.id}, falling back", e)
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAt,
+                    pendingIntent,
+                )
+            } catch (fallback: Exception) {
+                Log.e(TAG, "fallback schedule failed id=${reminder.id}", fallback)
+            }
         }
     }
 
     fun cancel(reminderId: Long) {
         val pendingIntent = ReminderIntents.alarmIntent(context, reminderId)
         alarmManager.cancel(pendingIntent)
-        pendingIntent.cancel()
         Log.d(TAG, "cancelled id=$reminderId")
     }
 

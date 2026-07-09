@@ -25,3 +25,6 @@ data class Reminder(
     val recurrenceRule: String? = null,
     val recurrenceInterval: Int = 1,
 )
+
+fun Reminder.resolvedDeliveryMode(fallback: DeliveryMode): DeliveryMode =
+    runCatching { DeliveryMode.valueOf(deliveryMode) }.getOrDefault(fallback)

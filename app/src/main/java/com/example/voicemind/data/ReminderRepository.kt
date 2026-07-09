@@ -58,6 +58,12 @@ class ReminderRepository(context: Context) {
 
     suspend fun snoozeReminder(id: Long, delayMinutes: Int) = withContext(Dispatchers.IO) {
         val reminder = dao.getById(id) ?: return@withContext
+        if (
+            reminder.status != ReminderStatus.PENDING.name &&
+            reminder.status != ReminderStatus.TRIGGERED.name
+        ) {
+            return@withContext
+        }
         val newFireAt = System.currentTimeMillis() + delayMinutes * 60_000L
         scheduler.cancel(id)
         dao.snooze(id, newFireAt)
@@ -133,8 +139,8 @@ class ReminderRepository(context: Context) {
 
     suspend fun updateAndSchedule(reminder: Reminder) = withContext(Dispatchers.IO) {
         val updated = reminder.copy(alarmRequestCode = reminder.id.requestCode())
-        dao.update(updated)
         scheduler.cancel(reminder.id)
+        dao.update(updated)
         if (
             updated.status == ReminderStatus.PENDING.name &&
             updated.fireAt > System.currentTimeMillis()
