@@ -7,11 +7,11 @@ import android.util.Log
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderStatus
 
-class ReminderScheduler(private val context: Context) {
+class ReminderScheduler(private val context: Context) : ReminderAlarmScheduler {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun schedule(reminder: Reminder) {
+    override fun schedule(reminder: Reminder) {
         if (reminder.status != ReminderStatus.PENDING.name) {
             return
         }
@@ -56,13 +56,13 @@ class ReminderScheduler(private val context: Context) {
         }
     }
 
-    fun cancel(reminderId: Long) {
+    override fun cancel(reminderId: Long) {
         val pendingIntent = ReminderIntents.alarmIntent(context, reminderId)
         alarmManager.cancel(pendingIntent)
         Log.d(TAG, "cancelled id=$reminderId")
     }
 
-    fun rescheduleAll(reminders: List<Reminder>) {
+    override fun rescheduleAll(reminders: List<Reminder>) {
         reminders.forEach { schedule(it) }
         Log.d(TAG, "rescheduled count=${reminders.size}")
     }

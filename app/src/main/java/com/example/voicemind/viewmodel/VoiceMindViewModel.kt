@@ -19,7 +19,6 @@ import com.example.voicemind.data.parse.ReminderParser
 import com.example.voicemind.data.parse.isVoiceParseSuccessful
 import com.example.voicemind.data.speech.SpeechInputController
 import com.example.voicemind.ui.widget.WidgetActions
-import com.example.voicemind.ui.widget.WidgetUpdater
 import com.example.voicemind.util.ReminderPermissions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -70,11 +69,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         safeDb(getString(R.string.error_save_failed)) {
             repository.deleteReminder(id)
             _undoReminderId.value = null
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -343,22 +337,12 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
     fun cancelReminder(id: Long) {
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.cancelReminder(id)
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
     fun completeReminder(id: Long) {
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.completeReminder(id)
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -380,11 +364,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         safeDb(getString(R.string.error_cancel_failed)) {
             repository.deleteReminder(id)
             _detailReminder.value = null
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -402,11 +381,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
             )
             _detailReminder.value = null
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -426,11 +400,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
             )
             _detailReminder.value = null
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -439,11 +408,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
             val reminder = repository.getById(id) ?: return@safeDb
             repository.updateAndSchedule(reminder.copy(recurrenceRule = null))
             _detailReminder.value = null
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -476,11 +440,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 ),
             )
             _detailReminder.value = null
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 
@@ -582,11 +541,6 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
                 onSavedId?.invoke(newId)
             }
             onSuccess()
-            try {
-                WidgetUpdater.updateAll(getApplication())
-            } catch (e: Exception) {
-                Log.e(TAG, "Widget update failed", e)
-            }
         }
     }
 

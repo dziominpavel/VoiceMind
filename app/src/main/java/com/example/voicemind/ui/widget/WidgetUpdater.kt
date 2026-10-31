@@ -4,12 +4,14 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object WidgetUpdater {
 
     private const val TAG = "WidgetUpdater"
 
-    suspend fun updateAll(context: Context) {
+    suspend fun updateAll(context: Context) = withContext(Dispatchers.IO) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
 
         // Update MicWidget
@@ -17,8 +19,11 @@ object WidgetUpdater {
         val micIds = appWidgetManager.getAppWidgetIds(micComponent)
         Log.d(TAG, "MicWidget ids=${micIds.toList()}")
         micIds.forEach { id ->
-            Log.d(TAG, "Updating MicWidget id=$id")
-            MicWidgetReceiver.updateWidget(context, appWidgetManager, id)
+            try {
+                MicWidgetReceiver.updateWidget(context, appWidgetManager, id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update MicWidget id=$id", e)
+            }
         }
 
         // Update ReminderListWidget
@@ -26,8 +31,11 @@ object WidgetUpdater {
         val listIds = appWidgetManager.getAppWidgetIds(listComponent)
         Log.d(TAG, "ReminderListWidget ids=${listIds.toList()}")
         listIds.forEach { id ->
-            Log.d(TAG, "Updating ReminderListWidget id=$id")
-            ReminderListWidgetProvider.updateWidget(context, appWidgetManager, id)
+            try {
+                ReminderListWidgetProvider.updateWidget(context, appWidgetManager, id)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update ReminderListWidget id=$id", e)
+            }
         }
     }
 }

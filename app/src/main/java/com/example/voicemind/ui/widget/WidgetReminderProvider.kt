@@ -33,7 +33,6 @@ object WidgetReminderProvider {
                 body = reminder.body,
                 fireAt = reminder.fireAt,
                 isDone = reminder.status != ReminderStatus.PENDING.name,
-                status = reminder.status,
             )
         }
     }
@@ -43,6 +42,5 @@ object WidgetReminderProvider {
         val body: String,
         val fireAt: Long,
         val isDone: Boolean,
-        val status: String,
     )
 }

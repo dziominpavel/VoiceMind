@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.notification.AlarmSoundPlayer
 import com.example.voicemind.data.resolvedDeliveryMode
+import com.example.voicemind.data.scheduling.ReminderIntents
 import com.example.voicemind.ui.theme.ComponentSize
 import com.example.voicemind.ui.theme.Spacing
 import com.example.voicemind.ui.theme.VoiceMindTheme
@@ -69,6 +71,15 @@ class AlarmActivity : ComponentActivity() {
         val reminderId = intent.getLongExtra(EXTRA_REMINDER_ID, -1L)
         reminderIdState = reminderId
 
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    cancelAndFinish()
+                }
+            },
+        )
+
         // Extras из fullScreenIntent (screen-off путь) — используются как placeholder
         // до загрузки данных через ViewModel.
         val initialBody = intent.getStringExtra(EXTRA_REMINDER_BODY)
@@ -83,17 +94,36 @@ class AlarmActivity : ComponentActivity() {
                     viewModel = viewModel,
                     onDone = { id ->
                         AlarmSoundPlayer.stop(this)
-                        viewModel.completeReminder(id)
+                        sendBroadcast(
+                            ReminderIntents.actionBroadcast(
+                                this,
+                                id,
+                                ReminderIntents.ACTION_COMPLETE,
+                            ),
+                        )
                         finish()
                     },
                     onSnooze = { id, minutes ->
                         AlarmSoundPlayer.stop(this)
-                        viewModel.snoozeReminder(id, minutes)
+                        sendBroadcast(
+                            ReminderIntents.actionBroadcast(
+                                this,
+                                id,
+                                ReminderIntents.ACTION_SNOOZE,
+                                minutes,
+                            ),
+                        )
                         finish()
                     },
                     onCancel = { id ->
                         AlarmSoundPlayer.stop(this)
-                        viewModel.cancelReminder(id)
+                        sendBroadcast(
+                            ReminderIntents.actionBroadcast(
+                                this,
+                                id,
+                                ReminderIntents.ACTION_CANCEL,
+                            ),
+                        )
                         finish()
                     },
                     onFinish = { finish() },
@@ -124,12 +154,18 @@ class AlarmActivity : ComponentActivity() {
         AlarmSoundPlayer.stop(this)
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
+    private fun cancelAndFinish() {
         AlarmSoundPlayer.stop(this)
-        viewModel.cancelReminder(reminderIdState)
-        @Suppress("DEPRECATION")
-        super.onBackPressed()
+        if (reminderIdState >= 0) {
+            sendBroadcast(
+                ReminderIntents.actionBroadcast(
+                    this,
+                    reminderIdState,
+                    ReminderIntents.ACTION_CANCEL,
+                ),
+            )
+        }
+        finish()
     }
 
     companion object {

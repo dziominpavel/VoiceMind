@@ -14,17 +14,22 @@ object NotificationChannels {
     const val SILENT = "reminders_silent_v2"
     const val QUIET_VIBRATE = "reminders_quiet_vibrate_v1"
 
-    private val ALARM_VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500)
     val DEFAULT_VIBRATE_PATTERN = longArrayOf(0, 300, 150, 300)
 
+    val currentChannelIds = setOf(DEFAULT, ALARM, VIBRATE, SILENT, QUIET_VIBRATE)
+    val legacyChannelIds = setOf(
+        "reminders_default",
+        "reminders_alarm",
+        "reminders_silent",
+        "reminders_vibrate",
+    )
+
     fun createAll(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Удаляем старые каналы, созданные в ранних версиях, чтобы система не кешировала
-        // неправильные звук / вибрацию.
-        nm.deleteNotificationChannel("reminders_default")
-        nm.deleteNotificationChannel(VIBRATE)
+        // Удаляем только старые ID каналов, созданные в ранних версиях. Текущие
+        // каналы не трогаем: удаление сбрасывает пользовательские настройки.
+        legacyChannelIds.forEach(nm::deleteNotificationChannel)
 
         // Канал "Как будильник" — без звука на канале (звук играет явно через AlarmSoundPlayer),
         // bypass DND, вибрация тоже явная

@@ -1,14 +1,16 @@
 package com.example.voicemind.ui.widget
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
-import androidx.annotation.RequiresApi
 import com.example.voicemind.MainActivity
 
-@RequiresApi(Build.VERSION_CODES.N)
 class VoiceMindTileService : TileService() {
 
+    // На API < 34 доступен только Intent-вариант; PendingIntent-перегрузка
+    // появилась в Android 14 (UPSIDE_DOWN_CAKE).
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
         val intent = Intent(applicationContext, MainActivity::class.java).apply {

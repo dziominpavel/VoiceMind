@@ -3,6 +3,7 @@ package com.example.voicemind.data.scheduling
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.example.voicemind.data.DismissBehavior
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.SettingsRepository
@@ -27,7 +28,14 @@ class ReminderActionReceiver : BroadcastReceiver() {
             try {
                 when (intent.action) {
                     ReminderIntents.ACTION_DONE -> repo.dismissReminder(reminderId)
-                    ReminderIntents.ACTION_SNOOZE -> repo.snoozeReminder(reminderId, ReminderRepository.SNOOZE_MINUTES)
+                    ReminderIntents.ACTION_COMPLETE -> repo.completeReminder(reminderId)
+                    ReminderIntents.ACTION_SNOOZE -> {
+                        val minutes = intent.getIntExtra(
+                            ReminderIntents.EXTRA_SNOOZE_MINUTES,
+                            ReminderRepository.SNOOZE_MINUTES,
+                        )
+                        repo.snoozeReminder(reminderId, minutes)
+                    }
                     ReminderIntents.ACTION_CANCEL -> repo.cancelReminder(reminderId)
                     ReminderIntents.ACTION_DISMISS -> {
                         val behavior = SettingsRepository.getInstance(context).dismissBehavior.first()
@@ -38,10 +46,16 @@ class ReminderActionReceiver : BroadcastReceiver() {
                     }
                 }
                 notifier.cancelNotification(reminderId)
-                AlarmSoundPlayer.stop(context)
+            } catch (e: Exception) {
+                Log.e(TAG, "Reminder action ${intent.action} failed for id=$reminderId", e)
             } finally {
+                AlarmSoundPlayer.stop(context)
                 pendingResult.finish()
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "ReminderActionReceiver"
     }
 }

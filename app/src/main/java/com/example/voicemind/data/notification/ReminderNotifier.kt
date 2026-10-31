@@ -23,8 +23,6 @@ class ReminderNotifier(private val context: Context) {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     suspend fun show(reminder: Reminder, quietMode: QuietHoursMode? = null) {
-        NotificationChannels.createAll(context)
-
         val settings = SettingsRepository.getInstance(context)
         val fallback = settings.getDefaultDeliveryMode()
         val baseDeliveryMode = reminder.resolvedDeliveryMode(fallback)

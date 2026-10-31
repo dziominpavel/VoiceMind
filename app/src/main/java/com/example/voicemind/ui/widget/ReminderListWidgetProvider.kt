@@ -11,7 +11,9 @@ import android.widget.RemoteViews
 import com.example.voicemind.MainActivity
 import com.example.voicemind.R
 import com.example.voicemind.data.FormatUtils
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ReminderListWidgetProvider : AppWidgetProvider() {
 
@@ -21,8 +23,17 @@ class ReminderListWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray,
     ) {
         android.util.Log.d(TAG, "onUpdate ids=${appWidgetIds.toList()}")
-        appWidgetIds.forEach { id ->
-            updateWidget(context, appWidgetManager, id)
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                appWidgetIds.forEach { id ->
+                    updateWidget(context, appWidgetManager, id)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Failed to update widget", e)
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
@@ -34,7 +45,7 @@ class ReminderListWidgetProvider : AppWidgetProvider() {
         private val TIME_IDS = listOf(R.id.time_1, R.id.time_2, R.id.time_3)
         private val CHECK_IDS = listOf(R.id.checkbox_1, R.id.checkbox_2, R.id.checkbox_3)
 
-        fun updateWidget(
+        suspend fun updateWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int,
@@ -53,13 +64,11 @@ class ReminderListWidgetProvider : AppWidgetProvider() {
             remoteViews.setOnClickPendingIntent(R.id.mic_button, micPending)
 
             // Load reminders (3 items max)
-            val items = runBlocking {
-                try {
-                    WidgetReminderProvider.loadItems(context)
-                } catch (e: Exception) {
-                    android.util.Log.e(TAG, "Failed to load widget items", e)
-                    emptyList()
-                }
+            val items = try {
+                WidgetReminderProvider.loadItems(context)
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Failed to load widget items", e)
+                emptyList()
             }
 
             // Fill 3 static rows
@@ -101,7 +110,6 @@ class ReminderListWidgetProvider : AppWidgetProvider() {
                     val toggleIntent = Intent(context, WidgetToggleReceiver::class.java).apply {
                         action = WidgetToggleReceiver.ACTION_TOGGLE
                         putExtra(WidgetToggleReceiver.EXTRA_REMINDER_ID, item.id)
-                        putExtra(WidgetToggleReceiver.EXTRA_CURRENT_STATUS, item.status)
                     }
                     val togglePending = PendingIntent.getBroadcast(
                         context, item.id.toInt(), toggleIntent,

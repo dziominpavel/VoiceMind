@@ -160,16 +160,20 @@ Overlay:
 ## ReminderScheduler
 
 ```kotlin
-class ReminderScheduler(context: Context) {
+interface ReminderAlarmScheduler {
     fun schedule(reminder: Reminder)
     fun cancel(reminderId: Long)
     fun rescheduleAll(reminders: List<Reminder>)
 }
+
+class ReminderScheduler(context: Context) : ReminderAlarmScheduler
 ```
 
 Единственное место работы с `AlarmManager`. Fallback на `setAndAllowWhileIdle` при отсутствии `SCHEDULE_EXACT_ALARM`.
 
 При update напоминания: `cancel` + `schedule` с новым `fireAt`.
+
+При смене `settings.defaultDeliveryMode` репозиторий обновляет `deliveryMode` в Room и пересоздаёт alarm для всех `PENDING`-напоминаний, чтобы `EXTRA_DELIVERY_MODE` в PendingIntent не устаревал. Интерфейс `ReminderAlarmScheduler` позволяет подменять планировщик в unit-тестах.
 
 ## Сортировка списков
 
@@ -209,12 +213,21 @@ class ReminderScheduler(context: Context) {
 - для `ALARM` — высокий приоритет + vibration pattern; `fullScreenIntent` как fallback для screen-off/locked;
 - при активных тихих часах использует `SILENT` или канал `reminders_quiet_vibrate_v1` без звука и без `fullScreenIntent`.
 
+`NotificationChannels.createAll` вызывается один раз в `VoiceMindApplication.onCreate`. При показе уведомления каналы не удаляются и не пересоздаются; удаляются только legacy-ID (`reminders_default`, `reminders_alarm`, `reminders_silent`, `reminders_vibrate`), текущие `_v2`-каналы сохраняют пользовательские настройки.
+
 ## Тихие часы
 
 - `QuietHoursSettings` — интервал `[start, end)` в локальном времени; переход через полночь поддержан, `start == end` выключает тишину.
 - Настройки читаются в момент срабатывания, а не при планировании: менять `fireAt` при смене тихих часов не нужно.
 - `ReminderAlarmReceiver` синхронно читает настройки перед `startActivity`; при активных тихих часах не запускает `AlarmActivity`, не берёт wake lock и не играет звук.
 - `ReminderNotifier` в тихие часы показывает уведомление в канале `SILENT` или `reminders_quiet_vibrate_v1` (короткая вибрация), сохраняя действия и `deleteIntent`.
+
+## Виджеты
+
+- `WidgetUpdater.updateAll` работает в `Dispatchers.IO`, поэтому вызовы из `MainActivity.onResume` и репозитория не блокируют main thread.
+- `WidgetToggleReceiver` использует `goAsync` + IO; статус напоминания читается из Room, а не из extras устаревшего intent.
+- `ReminderListWidgetProvider.onUpdate` использует `goAsync`; `updateWidget` — `suspend`, без `runBlocking`.
+- Обновление виджетов после мутаций остаётся в `ReminderRepository`; ViewModel не дублирует эти вызовы.
 
 ## Полноэкранный UI при срабатывании (ALARM/VIBRATE)
 
@@ -228,6 +241,8 @@ class ReminderScheduler(context: Context) {
 - загружает `Reminder` через `VoiceMindViewModel` по `EXTRA_REMINDER_ID`;
 - если `deliveryMode` NOTIFICATION/SILENT — `finish()` без показа UI;
 - если ALARM/VIBRATE — полноэкранный UI с кнопками Готово/Отложить/Отменить;
+- системный back обрабатывается через `OnBackPressedDispatcher`: отменяет напоминание, останавливает звук и закрывает Activity;
+- действия экрана отправляют explicit broadcast в `ReminderActionReceiver` (`ACTION_COMPLETE`, `ACTION_SNOOZE` с минутами, `ACTION_CANCEL`) и закрываются, поэтому операция не теряется вместе с `viewModelScope`;
 - `onNewIntent` обновляет `reminderId` при повторном срабатывании (звук перезапускается корутиной ресивера).
 
 ## Референс GymProgress (только код)

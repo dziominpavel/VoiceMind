@@ -2,6 +2,7 @@ package com.example.voicemind.data
 
 import android.content.Context
 import com.example.voicemind.data.notification.ReminderNotifier
+import com.example.voicemind.data.scheduling.ReminderAlarmScheduler
 import com.example.voicemind.data.scheduling.ReminderScheduler
 import com.example.voicemind.ui.widget.WidgetUpdater
 import kotlinx.coroutines.Dispatchers
@@ -9,11 +10,24 @@ import kotlinx.coroutines.withContext
 
 private fun Long.requestCode(): Int = (this and 0x7FFFFFFF).toInt()
 
-class ReminderRepository(context: Context) {
+internal suspend fun syncDeliveryModes(
+    dao: ReminderDao,
+    scheduler: ReminderAlarmScheduler,
+    mode: DeliveryMode,
+) {
+    dao.updateAllDeliveryModes(mode.name)
+    dao.getAllScheduled().forEach { reminder ->
+        scheduler.schedule(reminder.copy(deliveryMode = mode.name))
+    }
+}
+
+class ReminderRepository(
+    context: Context,
+    private val dao: ReminderDao = AppDatabase.getInstance(context.applicationContext).reminderDao(),
+    private val scheduler: ReminderAlarmScheduler = ReminderScheduler(context.applicationContext),
+) {
 
     private val appContext = context.applicationContext
-    private val dao = AppDatabase.getInstance(appContext).reminderDao()
-    private val scheduler = ReminderScheduler(appContext)
 
     suspend fun insertAndSchedule(reminder: Reminder): Long = withContext(Dispatchers.IO) {
         val id = dao.insert(reminder)
@@ -128,7 +142,8 @@ class ReminderRepository(context: Context) {
     }
 
     suspend fun syncAllDeliveryModes(mode: DeliveryMode) = withContext(Dispatchers.IO) {
-        dao.updateAllDeliveryModes(mode.name)
+        syncDeliveryModes(dao, scheduler, mode)
+        WidgetUpdater.updateAll(appContext)
     }
 
     suspend fun stopRecurrence(id: Long) = withContext(Dispatchers.IO) {
