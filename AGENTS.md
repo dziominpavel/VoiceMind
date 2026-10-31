@@ -20,7 +20,7 @@
 
 - Артефакты на **русском**, normative keywords — **MUST/SHALL/MUST NOT** (не «ДОЛЖЕН»).
 - Main specs: `## Purpose` + `## Requirements`; delta: `## ADDED/MODIFIED/REMOVED`.
-- Проверка: `openspec validate --all`. Workflows: `/opsx:propose`, `/opsx:apply`, `/opsx:archive`.
+- Проверка: `openspec validate --all`. Workflows в OpenCode: `/opsx-propose`, `/opsx-apply`, `/opsx-archive`.
 
 ## Приоритеты (кратко)
 
