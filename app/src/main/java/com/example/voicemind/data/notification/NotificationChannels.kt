@@ -12,6 +12,7 @@ object NotificationChannels {
     const val ALARM = "reminders_alarm_v2"
     const val VIBRATE = "reminders_vibrate_v2"
     const val SILENT = "reminders_silent_v2"
+    const val QUIET_VIBRATE = "reminders_quiet_vibrate_v1"
 
     private val ALARM_VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500)
     val DEFAULT_VIBRATE_PATTERN = longArrayOf(0, 300, 150, 300)
@@ -74,8 +75,21 @@ object NotificationChannels {
             enableVibration(false)
         }
 
+        // Канал для тихих часов с вибрацией — короткая вибрация без звука,
+        // без полноэкранного пробуждения.
+        val quietVibrateChannel = NotificationChannel(
+            QUIET_VIBRATE,
+            "Тихие (вибрация)",
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = "Короткая вибрация без звука в тихие часы"
+            setSound(null, null)
+            enableVibration(true)
+            vibrationPattern = DEFAULT_VIBRATE_PATTERN
+        }
+
         nm.createNotificationChannels(
-            listOf(alarmChannel, defaultChannel, vibrateChannel, silentChannel),
+            listOf(alarmChannel, defaultChannel, vibrateChannel, silentChannel, quietVibrateChannel),
         )
     }
 

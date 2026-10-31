@@ -53,4 +53,18 @@ class FormatUtilsTest {
         val now = dt(2026, 7, 10, 15, 0)
         assertEquals("просрочено", FormatUtils.formatRelativeFireAt(dt(2026, 7, 9, 9, 0), now, zone))
     }
+
+    @Test
+    fun formatMinuteOfDay_padsHoursAndMinutes() {
+        assertEquals("00:00", FormatUtils.formatMinuteOfDay(0))
+        assertEquals("09:05", FormatUtils.formatMinuteOfDay(9 * 60 + 5))
+        assertEquals("22:00", FormatUtils.formatMinuteOfDay(22 * 60))
+        assertEquals("23:59", FormatUtils.formatMinuteOfDay(1439))
+    }
+
+    @Test
+    fun formatMinuteOfDay_clampsOutOfRange() {
+        assertEquals("00:00", FormatUtils.formatMinuteOfDay(-1))
+        assertEquals("23:59", FormatUtils.formatMinuteOfDay(1440))
+    }
 }

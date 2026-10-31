@@ -172,4 +172,17 @@
     <string name="shortcut_voice_long_label">Записать голосовое напоминание</string>
     <string name="undo_snackbar_scheduled">Запланировано</string>
     <string name="undo_snackbar_action">Отменить</string>
+
+    <string name="settings_quiet_hours_title">Тихие часы</string>
+    <string name="settings_quiet_hours_hint">В этом интервале напоминания не звучат и не будят экран</string>
+    <string name="settings_quiet_hours_start">Начало</string>
+    <string name="settings_quiet_hours_end">Конец</string>
+    <string name="settings_quiet_hours_summary">С %1$s до %2$s</string>
+    <string name="settings_quiet_hours_same_time_hint">Начало и конец совпадают — тихие часы не действуют</string>
+    <string name="settings_quiet_hours_mode">Режим в тихие часы</string>
+    <string name="settings_quiet_hours_mode_silent">Тихое уведомление</string>
+    <string name="settings_quiet_hours_mode_vibrate">Вибрация</string>
+    <string name="settings_test_alarm">Проверить будильник</string>
+    <string name="settings_test_alarm_stop">Остановить проверку</string>
+    <string name="settings_test_alarm_hint">Проиграет текущую мелодию и вибрацию 5 секунд</string>
 </resources>

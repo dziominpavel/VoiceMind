@@ -8,10 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.voicemind.R
 import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.DismissBehavior
+import com.example.voicemind.data.QuietHoursMode
+import com.example.voicemind.data.QuietHoursSettings
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.ReminderRepository
 import com.example.voicemind.data.ReminderStatus
 import com.example.voicemind.data.SettingsRepository
+import com.example.voicemind.data.notification.AlarmSoundPlayer
 import com.example.voicemind.data.parse.ReminderParser
 import com.example.voicemind.data.parse.isVoiceParseSuccessful
 import com.example.voicemind.data.speech.SpeechInputController
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -104,6 +108,9 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
 
     val dismissBehavior = settings.dismissBehavior
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DismissBehavior.MARK_DONE)
+
+    val quietHours = settings.quietHours
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), QuietHoursSettings())
 
     private val _fallbackToSystemSpeech = MutableStateFlow(false)
     val fallbackToSystemSpeech: StateFlow<Boolean> = _fallbackToSystemSpeech.asStateFlow()
@@ -201,6 +208,44 @@ class VoiceMindViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             settings.setDismissBehavior(behavior)
         }
+    }
+
+    fun setQuietHoursEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settings.setQuietHoursEnabled(enabled)
+        }
+    }
+
+    fun setQuietHoursStartMinute(minute: Int) {
+        viewModelScope.launch {
+            settings.setQuietHoursStartMinute(minute)
+        }
+    }
+
+    fun setQuietHoursEndMinute(minute: Int) {
+        viewModelScope.launch {
+            settings.setQuietHoursEndMinute(minute)
+        }
+    }
+
+    fun setQuietHoursMode(mode: QuietHoursMode) {
+        viewModelScope.launch {
+            settings.setQuietHoursMode(mode)
+        }
+    }
+
+    /** Короткий предпросмотр текущего сигнала будильника (до 5 секунд). */
+    fun playTestAlarm() {
+        viewModelScope.launch {
+            val uri = settings.alarmRingtoneUri.first()
+            val volume = settings.alarmVolume.first()
+            val vibration = settings.useVibration.first()
+            AlarmSoundPlayer.preview(getApplication(), uri, volume, vibration)
+        }
+    }
+
+    fun stopTestAlarm() {
+        AlarmSoundPlayer.stop(getApplication())
     }
 
     /** Ручной режим: пустая форма с датой/временем по умолчанию. */

@@ -9,6 +9,7 @@ import com.example.voicemind.MainActivity
 import com.example.voicemind.R
 import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.FormatUtils
+import com.example.voicemind.data.QuietHoursMode
 import com.example.voicemind.data.Reminder
 import com.example.voicemind.data.SettingsRepository
 import com.example.voicemind.data.resolvedDeliveryMode
@@ -21,13 +22,24 @@ class ReminderNotifier(private val context: Context) {
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    suspend fun show(reminder: Reminder) {
+    suspend fun show(reminder: Reminder, quietMode: QuietHoursMode? = null) {
         NotificationChannels.createAll(context)
 
         val settings = SettingsRepository.getInstance(context)
         val fallback = settings.getDefaultDeliveryMode()
-        val deliveryMode = reminder.resolvedDeliveryMode(fallback)
-        val channelId = NotificationChannels.channelId(deliveryMode)
+        val baseDeliveryMode = reminder.resolvedDeliveryMode(fallback)
+        val effectiveQuietMode = quietMode
+            ?: settings.getQuietHours().takeIf { it.isActive() }?.mode
+        val deliveryMode = when (effectiveQuietMode) {
+            QuietHoursMode.SILENT -> DeliveryMode.SILENT
+            QuietHoursMode.VIBRATE -> DeliveryMode.VIBRATE
+            null -> baseDeliveryMode
+        }
+        val channelId = when (effectiveQuietMode) {
+            QuietHoursMode.SILENT -> NotificationChannels.SILENT
+            QuietHoursMode.VIBRATE -> NotificationChannels.QUIET_VIBRATE
+            null -> NotificationChannels.channelId(deliveryMode)
+        }
         val useVibration = settings.useVibration.first()
 
         val contentIntent = PendingIntent.getActivity(
@@ -68,7 +80,13 @@ class ReminderNotifier(private val context: Context) {
                 ReminderIntents.actionIntent(context, reminder.id, ReminderIntents.ACTION_CANCEL),
             )
 
-        if (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE) {
+        if (effectiveQuietMode == QuietHoursMode.VIBRATE) {
+            // Канал сам проигрывает короткую вибрацию; экран не будим.
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            builder.setVibrate(NotificationChannels.DEFAULT_VIBRATE_PATTERN)
+        } else if (effectiveQuietMode == QuietHoursMode.SILENT) {
+            builder.setPriority(NotificationCompat.PRIORITY_LOW)
+        } else if (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE) {
             builder.setCategory(NotificationCompat.CATEGORY_ALARM)
             builder.setPriority(NotificationCompat.PRIORITY_MAX)
             builder.setSilent(true)

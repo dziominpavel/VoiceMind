@@ -203,10 +203,18 @@ class ReminderScheduler(context: Context) {
 
 ## Уведомления
 
-`ReminderNotifier.show(reminder, mode)`:
+`ReminderNotifier.show(reminder, quietMode = null)`:
 
 - строит `NotificationCompat` по mode;
-- для `ALARM` — высокий приоритет + vibration pattern; `fullScreenIntent` как fallback для screen-off/locked.
+- для `ALARM` — высокий приоритет + vibration pattern; `fullScreenIntent` как fallback для screen-off/locked;
+- при активных тихих часах использует `SILENT` или канал `reminders_quiet_vibrate_v1` без звука и без `fullScreenIntent`.
+
+## Тихие часы
+
+- `QuietHoursSettings` — интервал `[start, end)` в локальном времени; переход через полночь поддержан, `start == end` выключает тишину.
+- Настройки читаются в момент срабатывания, а не при планировании: менять `fireAt` при смене тихих часов не нужно.
+- `ReminderAlarmReceiver` синхронно читает настройки перед `startActivity`; при активных тихих часах не запускает `AlarmActivity`, не берёт wake lock и не играет звук.
+- `ReminderNotifier` в тихие часы показывает уведомление в канале `SILENT` или `reminders_quiet_vibrate_v1` (короткая вибрация), сохраняя действия и `deleteIntent`.
 
 ## Полноэкранный UI при срабатывании (ALARM/VIBRATE)
 

@@ -19,6 +19,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
 class ReminderAlarmReceiver : BroadcastReceiver() {
 
@@ -31,8 +33,22 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             ?.let { runCatching { DeliveryMode.valueOf(it) }.getOrNull() }
             ?: settingsFallback
 
+        val settings = SettingsRepository.getInstance(context)
+
+        // Короткое чтение DataStore: нужно решить, можно ли будить экран, до
+        // синхронного startActivity (Android 10+ allowlist для full-screen).
+        // При таймауте считаем, что тихие часы не активны: лучше разбудить,
+        // чем потерять напоминание из-за зависшего чтения.
+        val quietMode = runBlocking {
+            withTimeoutOrNull(1_000L) {
+                settings.getQuietHours().takeIf { it.isActive() }?.mode
+            }
+        }
+
         // Sync startActivity before goAsync (Android 10+ allowlist). Only ALARM/VIBRATE.
-        if (modeFromExtras == DeliveryMode.ALARM || modeFromExtras == DeliveryMode.VIBRATE) {
+        if (quietMode == null &&
+            (modeFromExtras == DeliveryMode.ALARM || modeFromExtras == DeliveryMode.VIBRATE)
+        ) {
             try {
                 val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -54,11 +70,13 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     return@launch
                 }
 
-                val settings = SettingsRepository.getInstance(context)
                 val fallback = settings.getDefaultDeliveryMode()
                 val deliveryMode = reminder.resolvedDeliveryMode(fallback)
 
-                if (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE) {
+                // В тихие часы не будим экран и не играем звук/долгую вибрацию.
+                if (quietMode == null &&
+                    (deliveryMode == DeliveryMode.ALARM || deliveryMode == DeliveryMode.VIBRATE)
+                ) {
                     val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
                     wakeLock = powerManager.newWakeLock(
                         PowerManager.FULL_WAKE_LOCK or
@@ -69,16 +87,18 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     wakeLock.acquire(10_000L)
                 }
 
-                if (deliveryMode == DeliveryMode.ALARM) {
-                    val customUri = settings.alarmRingtoneUri.first()
-                    val volume = settings.alarmVolume.first()
-                    val useVibration = settings.useVibration.first()
-                    AlarmSoundPlayer.play(context, customUri, volume, useVibration)
-                } else if (deliveryMode == DeliveryMode.VIBRATE) {
-                    AlarmSoundPlayer.playVibrationOnly(context)
+                if (quietMode == null) {
+                    if (deliveryMode == DeliveryMode.ALARM) {
+                        val customUri = settings.alarmRingtoneUri.first()
+                        val volume = settings.alarmVolume.first()
+                        val useVibration = settings.useVibration.first()
+                        AlarmSoundPlayer.play(context, customUri, volume, useVibration)
+                    } else if (deliveryMode == DeliveryMode.VIBRATE) {
+                        AlarmSoundPlayer.playVibrationOnly(context)
+                    }
                 }
 
-                ReminderNotifier(context).show(reminder)
+                ReminderNotifier(context).show(reminder, quietMode)
 
                 val rule = RecurrenceRule.parse(reminder.recurrenceRule)
                 if (rule != null) {

@@ -28,18 +28,27 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +58,9 @@ import com.example.voicemind.BuildConfig
 import com.example.voicemind.R
 import com.example.voicemind.data.DeliveryMode
 import com.example.voicemind.data.DismissBehavior
+import com.example.voicemind.data.FormatUtils
+import com.example.voicemind.data.QuietHoursMode
+import com.example.voicemind.data.QuietHoursSettings
 import com.example.voicemind.ui.theme.ErrorCoral
 import com.example.voicemind.ui.theme.HapticType
 import com.example.voicemind.ui.theme.NeoWaveHaptics
@@ -60,7 +72,9 @@ import com.example.voicemind.ui.theme.TextMuted
 import com.example.voicemind.ui.theme.TextPrimaryDark
 import com.example.voicemind.util.ReminderPermissions
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.time.LocalTime
 
 @Composable
 fun SettingsScreen(
@@ -70,17 +84,41 @@ fun SettingsScreen(
     alarmRingtoneUri: String?,
     alarmVolume: Int,
     dismissBehavior: DismissBehavior,
+    quietHours: QuietHoursSettings,
     onConfirmBeforeScheduleChange: (Boolean) -> Unit,
     onDefaultDeliveryModeChange: (DeliveryMode) -> Unit,
     onUseVibrationChange: (Boolean) -> Unit,
     onSelectRingtone: () -> Unit,
     onAlarmVolumeChange: (Int) -> Unit,
+    onQuietHoursEnabledChange: (Boolean) -> Unit,
+    onQuietHoursStartChange: (Int) -> Unit,
+    onQuietHoursEndChange: (Int) -> Unit,
+    onQuietHoursModeChange: (QuietHoursMode) -> Unit,
+    onTestAlarm: () -> Unit,
+    onStopTestAlarm: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onRequestFullScreenIntentPermission: () -> Unit,
     onDismissBehaviorChange: (DismissBehavior) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var showQuietStartPicker by remember { mutableStateOf(false) }
+    var showQuietEndPicker by remember { mutableStateOf(false) }
+    var testAlarmPlaying by remember { mutableStateOf(false) }
+    val currentTestPlaying by rememberUpdatedState(testAlarmPlaying)
+
+    LaunchedEffect(testAlarmPlaying) {
+        if (testAlarmPlaying) {
+            delay(5_000)
+            testAlarmPlaying = false
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (currentTestPlaying) onStopTestAlarm()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -156,6 +194,114 @@ fun SettingsScreen(
                     volume = alarmVolume,
                     onVolumeChange = onAlarmVolumeChange,
                 )
+                Spacer(modifier = Modifier.height(Spacing.md))
+                OutlinedButton(
+                    onClick = {
+                        if (testAlarmPlaying) {
+                            onStopTestAlarm()
+                            testAlarmPlaying = false
+                        } else {
+                            onTestAlarm()
+                            testAlarmPlaying = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = if (testAlarmPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(
+                        stringResource(
+                            if (testAlarmPlaying) {
+                                R.string.settings_test_alarm_stop
+                            } else {
+                                R.string.settings_test_alarm
+                            },
+                        ),
+                    )
+                }
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(
+                    text = stringResource(R.string.settings_test_alarm_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                )
+            }
+        }
+
+        // Quiet hours
+        SettingsCard(title = stringResource(R.string.settings_quiet_hours_title)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_quiet_hours_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    modifier = Modifier.weight(1f),
+                )
+                androidx.compose.material3.Switch(
+                    checked = quietHours.enabled,
+                    onCheckedChange = {
+                        NeoWaveHaptics.perform(context, HapticType.Toggle)
+                        onQuietHoursEnabledChange(it)
+                    },
+                )
+            }
+
+            AnimatedVisibility(
+                visible = quietHours.enabled,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    QuietHoursTimeRow(
+                        title = stringResource(R.string.settings_quiet_hours_start),
+                        minute = quietHours.startMinute,
+                        onClick = { showQuietStartPicker = true },
+                    )
+                    QuietHoursTimeRow(
+                        title = stringResource(R.string.settings_quiet_hours_end),
+                        minute = quietHours.endMinute,
+                        onClick = { showQuietEndPicker = true },
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.settings_quiet_hours_summary,
+                            FormatUtils.formatMinuteOfDay(quietHours.startMinute),
+                            FormatUtils.formatMinuteOfDay(quietHours.endMinute),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Teal,
+                    )
+                    if (quietHours.startMinute == quietHours.endMinute) {
+                        Text(
+                            text = stringResource(R.string.settings_quiet_hours_same_time_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text(
+                        text = stringResource(R.string.settings_quiet_hours_mode),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    RadioOptionRow(
+                        title = stringResource(R.string.settings_quiet_hours_mode_silent),
+                        selected = quietHours.mode == QuietHoursMode.SILENT,
+                        onClick = { onQuietHoursModeChange(QuietHoursMode.SILENT) },
+                    )
+                    RadioOptionRow(
+                        title = stringResource(R.string.settings_quiet_hours_mode_vibrate),
+                        selected = quietHours.mode == QuietHoursMode.VIBRATE,
+                        onClick = { onQuietHoursModeChange(QuietHoursMode.VIBRATE) },
+                    )
+                }
             }
         }
 
@@ -247,6 +393,34 @@ fun SettingsScreen(
                 color = TextMuted,
             )
         }
+    }
+
+    if (showQuietStartPicker) {
+        ReminderTimePickerDialog(
+            initialTime = LocalTime.of(
+                quietHours.startMinute / 60,
+                quietHours.startMinute % 60,
+            ),
+            onDismiss = { showQuietStartPicker = false },
+            onConfirm = { time ->
+                onQuietHoursStartChange(time.hour * 60 + time.minute)
+                showQuietStartPicker = false
+            },
+        )
+    }
+
+    if (showQuietEndPicker) {
+        ReminderTimePickerDialog(
+            initialTime = LocalTime.of(
+                quietHours.endMinute / 60,
+                quietHours.endMinute % 60,
+            ),
+            onDismiss = { showQuietEndPicker = false },
+            onConfirm = { time ->
+                onQuietHoursEndChange(time.hour * 60 + time.minute)
+                showQuietEndPicker = false
+            },
+        )
     }
 }
 
@@ -393,6 +567,37 @@ private fun RadioOptionRow(
         RadioButton(selected = selected, onClick = onClick)
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = title, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun QuietHoursTimeRow(
+    title: String,
+    minute: Int,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = title, style = MaterialTheme.typography.bodyLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = FormatUtils.formatMinuteOfDay(minute),
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextMuted,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = TextMuted,
+            )
+        }
     }
 }
 

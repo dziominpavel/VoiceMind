@@ -9,9 +9,16 @@ import java.util.Locale
 object FormatUtils {
 
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.forLanguageTag("ru"))
+    private val timeOfDayFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag("ru"))
 
     fun formatFireAt(epochMillis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
         Instant.ofEpochMilli(epochMillis).atZone(zone).format(dateTimeFormatter)
+
+    /** Время суток из минут от полуночи, например 22:00. */
+    fun formatMinuteOfDay(minute: Int): String {
+        val normalized = minute.coerceIn(0, 24 * 60 - 1)
+        return java.time.LocalTime.of(normalized / 60, normalized % 60).format(timeOfDayFormatter)
+    }
 
     fun formatRelativeFireAt(
         epochMillis: Long,

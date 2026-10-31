@@ -20,6 +20,7 @@ object AlarmSoundPlayer {
     private val handler = Handler(Looper.getMainLooper())
     private var stopRunnable: Runnable? = null
     private const val AUTO_STOP_MS = 60_000L
+    private const val PREVIEW_MS = 5_000L
     private val VIBRATE_PATTERN = longArrayOf(0, 500, 200, 500, 200, 500, 200, 500)
     private const val TAG = "AlarmSoundPlayer"
 
@@ -63,6 +64,23 @@ object AlarmSoundPlayer {
             Log.e(TAG, "play failed", e)
             stop(context)
         }
+    }
+
+    /**
+     * Короткий предпросмотр текущего сигнала из настроек.
+     * Не дольше [PREVIEW_MS]; реальный alarm при срабатывании перехватит
+     * управление через [play] и отменит таймер предпросмотра.
+     */
+    fun preview(
+        context: Context,
+        customUriString: String? = null,
+        volumePercent: Int = 100,
+        withVibration: Boolean = true,
+    ) {
+        play(context, customUriString, volumePercent, withVibration)
+        stopRunnable?.let { handler.removeCallbacks(it) }
+        stopRunnable = Runnable { stop(context.applicationContext) }
+        handler.postDelayed(stopRunnable!!, PREVIEW_MS)
     }
 
     fun playVibrationOnly(context: Context) {

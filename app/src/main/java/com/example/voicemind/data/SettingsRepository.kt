@@ -22,6 +22,10 @@ class SettingsRepository(private val context: Context) {
     private val alarmRingtoneUriKey = stringPreferencesKey("alarm_ringtone_uri")
     private val alarmVolumeKey = intPreferencesKey("alarm_volume")
     private val dismissBehaviorKey = stringPreferencesKey("dismiss_behavior")
+    private val quietHoursEnabledKey = booleanPreferencesKey("quiet_hours_enabled")
+    private val quietHoursStartMinuteKey = intPreferencesKey("quiet_hours_start_minute")
+    private val quietHoursEndMinuteKey = intPreferencesKey("quiet_hours_end_minute")
+    private val quietHoursModeKey = stringPreferencesKey("quiet_hours_mode")
     private val deliveryModeSyncedV6Key = booleanPreferencesKey("delivery_mode_synced_v6")
     private val alarmVolumeMigratedV2Key = booleanPreferencesKey("alarm_volume_migrated_v2")
 
@@ -56,6 +60,23 @@ class SettingsRepository(private val context: Context) {
             runCatching { DismissBehavior.valueOf(it) }.getOrNull()
         } ?: DismissBehavior.MARK_DONE
     }
+
+    val quietHours: Flow<QuietHoursSettings> = context.settingsDataStore.data.map { prefs ->
+        QuietHoursSettings(
+            enabled = prefs[quietHoursEnabledKey] ?: false,
+            startMinute = QuietHoursSettings.normalizeMinute(
+                prefs[quietHoursStartMinuteKey] ?: QuietHoursSettings.DEFAULT_START_MINUTE,
+            ),
+            endMinute = QuietHoursSettings.normalizeMinute(
+                prefs[quietHoursEndMinuteKey] ?: QuietHoursSettings.DEFAULT_END_MINUTE,
+            ),
+            mode = prefs[quietHoursModeKey]?.let {
+                runCatching { QuietHoursMode.valueOf(it) }.getOrNull()
+            } ?: QuietHoursMode.SILENT,
+        )
+    }
+
+    suspend fun getQuietHours(): QuietHoursSettings = quietHours.first()
 
     suspend fun setConfirmBeforeSchedule(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
@@ -94,6 +115,30 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDismissBehavior(behavior: DismissBehavior) {
         context.settingsDataStore.edit { prefs ->
             prefs[dismissBehaviorKey] = behavior.name
+        }
+    }
+
+    suspend fun setQuietHoursEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[quietHoursEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setQuietHoursStartMinute(minute: Int) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[quietHoursStartMinuteKey] = QuietHoursSettings.normalizeMinute(minute)
+        }
+    }
+
+    suspend fun setQuietHoursEndMinute(minute: Int) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[quietHoursEndMinuteKey] = QuietHoursSettings.normalizeMinute(minute)
+        }
+    }
+
+    suspend fun setQuietHoursMode(mode: QuietHoursMode) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[quietHoursModeKey] = mode.name
         }
     }
 

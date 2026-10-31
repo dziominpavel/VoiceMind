@@ -102,6 +102,7 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
     val alarmRingtoneUri by viewModel.alarmRingtoneUri.collectAsState()
     val alarmVolume by viewModel.alarmVolume.collectAsState()
     val dismissBehavior by viewModel.dismissBehavior.collectAsState()
+    val quietHours by viewModel.quietHours.collectAsState()
     val fallbackToSystemSpeech by viewModel.fallbackToSystemSpeech.collectAsState()
     val requestNotificationsPermission by viewModel.requestNotificationsPermission.collectAsState()
     val undoReminderId by viewModel.undoReminderId.collectAsState()
@@ -326,11 +327,18 @@ fun VoiceMindApp(viewModel: VoiceMindViewModel = viewModel()) {
                         alarmRingtoneUri = alarmRingtoneUri,
                         alarmVolume = alarmVolume,
                         dismissBehavior = dismissBehavior,
+                        quietHours = quietHours,
                         onConfirmBeforeScheduleChange = { viewModel.setConfirmBeforeSchedule(it) },
                         onAlarmVolumeChange = { viewModel.setAlarmVolume(it) },
                         onDefaultDeliveryModeChange = { viewModel.setDefaultDeliveryMode(it) },
                         onUseVibrationChange = { viewModel.setUseVibration(it) },
                         onSelectRingtone = { launchRingtonePicker() },
+                        onQuietHoursEnabledChange = { viewModel.setQuietHoursEnabled(it) },
+                        onQuietHoursStartChange = { viewModel.setQuietHoursStartMinute(it) },
+                        onQuietHoursEndChange = { viewModel.setQuietHoursEndMinute(it) },
+                        onQuietHoursModeChange = { viewModel.setQuietHoursMode(it) },
+                        onTestAlarm = { viewModel.playTestAlarm() },
+                        onStopTestAlarm = { viewModel.stopTestAlarm() },
                         onRequestNotificationPermission = {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         },
